@@ -1,3 +1,4 @@
+import { CartSheet } from "@/components/cart/cart-sheet";
 import { BottomNav } from "@/components/shell/bottom-nav";
 import { BrandBar } from "@/components/shell/brand-bar";
 import { Footer } from "@/components/shell/footer";
@@ -17,6 +18,7 @@ export default function StoreLayout({ children }: LayoutProps<"/">) {
       </main>
       <Footer />
       <BottomNav />
+      <CartSheet />
     </>
   );
 }

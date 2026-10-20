@@ -98,6 +98,11 @@ latest stable releases at implementation time unless a task says otherwise.
 - **Decision**: Cloudinary for cake photos and customer reference uploads (signed direct uploads,
   automatic format/size transforms), rendered through `next/image` with a Cloudinary loader.
 - **Rationale**: Responsive, optimised images are the biggest lever for LCP on a photo-heavy site.
+- **Update 2026-10-20 (US2)**: Configured by one `CLOUDINARY_URL` variable. Reference uploads are
+  signed per file (fixed `public_id`, `allowed_formats` jpg/png/webp/heic) and served with
+  `f_auto` so HEIC photos display everywhere. The 10 MB limit is checked on the device and in the
+  signing request; a Cloudinary upload preset can enforce it at the edge later. Without the
+  variable the builder's photo step points customers to Instagram instead.
 - **Alternatives**: S3/R2 + own resizing (more work); Vercel Blob (no transforms).
 
 ## 10. Notifications
@@ -148,8 +153,10 @@ latest stable releases at implementation time unless a task says otherwise.
 - **Update 2026-10-20 (deployment)**: The owner connected the repo to Vercel (root directory
   `apps/web`). The database is Neon Postgres created from Vercel's Storage tab, which injects
   `DATABASE_URL` without anyone handling the secret. `apps/web/vercel.json` runs
-  `scripts/vercel-build.sh`: apply migrations, seed the sample menu only if the catalog is empty
-  (`db:seed --if-empty`, never overwrites data), then `next build`.
+  `scripts/vercel-build.sh`: apply migrations, load the sample menu when the catalog is empty or
+  holds an older sample menu than `SAMPLE_MENU_VERSION` (`db:seed --if-outdated`), then
+  `next build`. Until US5 every cake is placeholder data, so reloading it is safe; T083 retires
+  the reload once the baker manages the real menu.
 - **Docker**: Postgres in Docker is for local development only (`docker-compose.yml`); Vercel cannot
   run or reach a container, so it is not an option for the hosted site.
 - **Known trade-off**: preview deployments share the production database for now. Before real orders

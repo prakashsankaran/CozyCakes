@@ -4,9 +4,9 @@
  * hand-made rather than full of grey boxes.
  */
 
-type Palette = { bg: string; body: string; cap: string; drip: string; accent: string };
+export type Palette = { bg: string; body: string; cap: string; drip: string; accent: string };
 
-const palettes: Record<string, Palette> = {
+export const palettes: Record<string, Palette> = {
   chocolate: { bg: "#F3D3B5", body: "#7B4B35", cap: "#8C5A41", drip: "#3E2419", accent: "#F4B6C2" },
   vanilla: { bg: "#FDEBEF", body: "#FFF1D6", cap: "#FFF8EA", drip: "#F4B6C2", accent: "#A84860" },
   "red-velvet": {
@@ -21,10 +21,10 @@ const palettes: Record<string, Palette> = {
   coffee: { bg: "#F3D3B5", body: "#E9CDB0", cap: "#F2DCC5", drip: "#8B5A3C", accent: "#3E2419" },
 };
 
-type Topping = "berries" | "sprinkles" | "petals" | "candles";
+export type Topping = "berries" | "sprinkles" | "petals" | "candles";
 const toppings: Topping[] = ["berries", "sprinkles", "petals", "candles"];
 
-function hash(s: string): number {
+export function hash(s: string): number {
   let h = 7;
   for (const ch of s) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return h;
@@ -44,7 +44,7 @@ function dripPath(x: number, y: number, w: number, seed: number): string {
   return `${d} Z`;
 }
 
-function Tier({
+export function Tier({
   x,
   y,
   w,
@@ -72,7 +72,7 @@ function Tier({
   );
 }
 
-function Toppings({
+export function Toppings({
   kind,
   cx,
   y,

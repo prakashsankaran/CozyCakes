@@ -2,12 +2,15 @@ import { cacheLife, cacheTag } from "next/cache";
 import { connection } from "next/server";
 import {
   filterCakes,
+  quoteCart,
   sortForStorefront,
   toCakeCard,
   toCakeDetail,
   type CakeCard,
   type CakeDetail,
   type CakeFilter,
+  type CartItem,
+  type CartQuote,
   type Home,
   type Tag,
 } from "@cozycakes/core";
@@ -50,6 +53,20 @@ export async function getCakeDetail(slug: string): Promise<CakeDetail | null> {
   const { cakes, ctx } = await catalog();
   const cake = cakes.find((c) => c.slug === slug);
   return cake ? toCakeDetail(cake, ctx) : null;
+}
+
+/** Re-prices a device cart against the live catalog (FR-007). */
+export async function quoteCartItems(items: CartItem[]): Promise<CartQuote> {
+  const { cakes, ctx } = await catalog();
+  const byId = new Map(cakes.map((c) => [c.id, c]));
+  return quoteCart(
+    items,
+    (id) => {
+      const cake = byId.get(id);
+      return cake ? toCakeDetail(cake, ctx) : null;
+    },
+    ctx,
+  );
 }
 
 export async function listTags(): Promise<Tag[]> {

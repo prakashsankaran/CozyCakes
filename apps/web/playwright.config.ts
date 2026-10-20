@@ -31,5 +31,11 @@ export default defineConfig({
     url: `http://localhost:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
+    // A dummy Cloudinary account switches reference photo uploads on; tests stub the upload itself.
+    env: {
+      ...(process.env as Record<string, string>),
+      CLOUDINARY_URL:
+        process.env.CLOUDINARY_URL ?? "cloudinary://test-key:test-secret@cozycakes-test",
+    },
   },
 });

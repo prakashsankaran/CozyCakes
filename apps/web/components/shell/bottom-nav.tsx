@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense } from "react";
+import { CartCount } from "@/components/cart/cart-count";
 
 const items = [
   {
@@ -79,6 +80,7 @@ function NavList({ pathname }: { pathname: string | null }) {
                   </svg>
                 </span>
                 {item.label}
+                {item.href === "/cart" && <CartCount className="absolute top-1.5 left-1/2 ml-2" />}
               </Link>
             </li>
           );

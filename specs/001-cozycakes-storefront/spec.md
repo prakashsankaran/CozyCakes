@@ -354,8 +354,12 @@ device, and verify both persist and pre-fill checkout.
 - **Brand assets**: The Instagram page (@cosycaker) could not be accessed during spec writing, so
   branding is inferred from the name "CozyCakes". Logo, photos, and final palette will be supplied
   by the owner; placeholders are used until then.
-- **Interim ordering**: Until online checkout (User Story 3) ships, cake pages invite customers to
-  order by messaging the baker on Instagram.
+- **Interim ordering**: Until online checkout (User Story 3) ships, customers build their cake and
+  fill the cart as normal; the cart then copies a tidy order summary (cakes, choices, messages,
+  total, earliest date) and opens Instagram so they can paste it to the baker.
+- **Dietary choices**: Cakes that can be made eggless offer a Dietary step ("Make it eggless",
+  "Less sugar") as an ordinary option group, so dietary requests are priced and validated like
+  any other choice.
 - **Notifications**: Email is the baseline channel; WhatsApp notifications are desirable and will
   be added when a provider is chosen.
 - **Out of scope for this feature**: native mobile app (planned next; this feature keeps it

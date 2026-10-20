@@ -1,0 +1,1 @@
+ALTER TABLE "bakery_settings" ADD COLUMN "sample_menu_version" integer DEFAULT 0 NOT NULL;

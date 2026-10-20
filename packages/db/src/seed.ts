@@ -2,9 +2,11 @@
  * Placeholder menu until the baker's real cakes and photos arrive (tasks T019).
  *
  * Default mode wipes catalog and availability tables, so it refuses to run against production.
- * `--if-empty` only seeds a database with no cakes and never deletes anything that exists; deploys
- * use it to give a fresh database the sample menu (tasks T081).
+ * `--if-outdated` reloads the menu only when the database has no cakes or holds an older sample
+ * menu than `SAMPLE_MENU_VERSION`; deploys use it (tasks T081). Bump the version when the sample
+ * menu changes, and stop bumping it once the baker manages the real menu (US5).
  */
+import { eq } from "drizzle-orm";
 import { createDb } from "./client";
 import {
   bakerySettings,
@@ -17,19 +19,28 @@ import {
   timeSlots,
 } from "./schema";
 
+const SAMPLE_MENU_VERSION = 2;
+
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is not set");
-const ifEmpty = process.argv.includes("--if-empty");
-if (!ifEmpty && process.env.NODE_ENV === "production" && !process.argv.includes("--force")) {
-  throw new Error("Refusing to seed a production database (pass --force or --if-empty)");
+const ifOutdated = process.argv.includes("--if-outdated");
+if (!ifOutdated && process.env.NODE_ENV === "production" && !process.argv.includes("--force")) {
+  throw new Error("Refusing to seed a production database (pass --force or --if-outdated)");
 }
 
 const db = createDb(url);
 
-if (ifEmpty && (await db.$count(cakes)) > 0) {
-  await db.$client.end();
-  console.log("Catalog already has cakes; leaving it untouched");
-  process.exit(0);
+if (ifOutdated) {
+  const [settings] = await db
+    .select({ version: bakerySettings.sampleMenuVersion })
+    .from(bakerySettings)
+    .where(eq(bakerySettings.id, 1));
+  const hasCakes = (await db.$count(cakes)) > 0;
+  if (hasCakes && (settings?.version ?? 0) >= SAMPLE_MENU_VERSION) {
+    await db.$client.end();
+    console.log(`Sample menu v${settings?.version} is current; leaving the catalog untouched`);
+    process.exit(0);
+  }
 }
 const rupees = (r: number) => r * 100;
 
@@ -195,7 +206,14 @@ const groupDefs: Array<{
     ],
   },
   {
-    group: { name: "Add-ons", kind: "multi", required: false, maxSelect: 4, sortOrder: 3 },
+    group: { name: "Dietary", kind: "multi", required: false, maxSelect: 2, sortOrder: 3 },
+    options: [
+      ["Make it eggless", 0, null],
+      ["Less sugar", 0, null],
+    ],
+  },
+  {
+    group: { name: "Add-ons", kind: "multi", required: false, maxSelect: 4, sortOrder: 4 },
     options: [
       ["Happy Birthday topper", rupees(150), null],
       ["Sparkler candles", rupees(80), null],
@@ -246,14 +264,18 @@ await db.transaction(async (tx) => {
         sortOrder: j,
       })),
     );
+    // Cakes that are (or can be made) eggless offer the dietary step before add-ons.
+    const linked = cake.dietaryTags?.includes("eggless")
+      ? groups.flatMap((g) => (g === "Add-ons" ? ["Dietary", g] : [g]))
+      : groups;
     await tx
       .insert(cakeOptionGroups)
       .values(
-        groups.map((name, j) => ({ cakeId: row!.id, groupId: groupIds.get(name)!, sortOrder: j })),
+        linked.map((name, j) => ({ cakeId: row!.id, groupId: groupIds.get(name)!, sortOrder: j })),
       );
   }
 
-  await tx.insert(bakerySettings).values({ id: 1 });
+  await tx.insert(bakerySettings).values({ id: 1, sampleMenuVersion: SAMPLE_MENU_VERSION });
   await tx.insert(timeSlots).values([
     { label: "10am – 12pm", start: "10:00", end: "12:00" },
     { label: "12pm – 3pm", start: "12:00", end: "15:00" },
@@ -262,4 +284,4 @@ await db.transaction(async (tx) => {
 });
 
 await db.$client.end();
-console.log(`Seeded ${cakeRows.length} cakes`);
+console.log(`Seeded sample menu v${SAMPLE_MENU_VERSION} with ${cakeRows.length} cakes`);

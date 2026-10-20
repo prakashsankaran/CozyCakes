@@ -42,13 +42,12 @@ test("a filter with no matches shows a friendly empty state", async ({ page }) =
   await expect(page).toHaveURL(/\/cakes$/);
 });
 
-test("cake detail shows sizes, earliest date and options", async ({ page }) => {
+test("cake detail shows earliest date and opens the builder on sizes", async ({ page }) => {
   await page.goto("/cakes/chocolate-truffle-dream");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText("Chocolate Truffle Dream");
   await expect(page.getByText(/Ready from .* order 2 days ahead/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Sizes" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Build your cake" })).toBeVisible();
   await expect(page.getByText("Serves 8–10")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Make it yours" })).toBeVisible();
   await expectAccessible(page);
 });
 
@@ -59,6 +58,7 @@ test("paused cakes are marked Back soon and cannot be ordered", async ({ page })
     page.getByRole("heading", { name: "This one is taking a little break" }),
   ).toBeVisible();
   await expect(page.getByText(/Ready from/)).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Build your cake" })).toHaveCount(0);
 });
 
 test("unknown cakes show the branded not-found page", async ({ page }) => {

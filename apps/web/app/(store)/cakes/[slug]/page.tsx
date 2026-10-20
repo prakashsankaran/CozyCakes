@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { formatCalendarDate, formatMoney, type CakeDetail, type Tag } from "@cozycakes/core";
+import { formatCalendarDate, formatMoney, type Tag } from "@cozycakes/core";
+import { CakeBuilder } from "@/components/builder/cake-builder";
 import { CakeVisual } from "@/components/cake/cake-visual";
 import { getCakeDetail, listTags, tagLabel } from "@/lib/catalog";
 import { site } from "@/lib/site";
+import { uploadsEnabled } from "@/lib/uploads";
 
 export async function generateMetadata({ params }: PageProps<"/cakes/[slug]">): Promise<Metadata> {
   const cake = await getCakeDetail((await params).slug);
@@ -44,7 +46,7 @@ async function CakeContent({ params }: { params: PageProps<"/cakes/[slug]">["par
         />
       </div>
 
-      <div className="pb-8">
+      <div className="min-w-0 pb-8">
         <div className="animate-rise flex flex-wrap gap-2">
           {[...cake.occasionTags, ...cake.dietaryTags].map((t) => (
             <Badge key={t} tags={tags} slug={t} />
@@ -100,28 +102,11 @@ async function CakeContent({ params }: { params: PageProps<"/cakes/[slug]">["par
           </blockquote>
         )}
 
-        {cake.sizes.length > 0 && (
-          <section aria-labelledby="sizes-title" className="mt-10">
-            <h2 id="sizes-title" className="font-display text-2xl font-semibold">
-              Sizes
-            </h2>
-            <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {cake.sizes.map((s) => (
-                <li
-                  key={s.id}
-                  className="rounded-[var(--radius-md)] bg-white/70 p-4 ring-1 ring-cocoa-900/10"
-                >
-                  <p className="font-display text-xl font-semibold">{s.label}</p>
-                  <p className="text-sm text-cocoa-700">Serves {s.serves}</p>
-                  <p className="mt-2 font-bold">{formatMoney(s.price)}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
+        {cake.available ? (
+          <CakeBuilder cake={cake} uploadsEnabled={uploadsEnabled()} />
+        ) : (
+          <PausedPanel />
         )}
-
-        <MakeItYours cake={cake} />
-        <OrderPanel cake={cake} />
       </div>
     </article>
   );
@@ -140,75 +125,19 @@ function Badge({ tags, slug }: { tags: Tag[]; slug: string }) {
   );
 }
 
-function MakeItYours({ cake }: { cake: CakeDetail }) {
-  if (cake.optionGroups.length === 0) return null;
-  return (
-    <section aria-labelledby="options-title" className="mt-10">
-      <h2 id="options-title" className="font-display text-2xl font-semibold">
-        Make it yours
-      </h2>
-      <p className="mt-1 text-cocoa-700">
-        Add a message on the cake, share a reference photo, and choose:
-      </p>
-      <dl className="mt-4 space-y-4">
-        {cake.optionGroups.map((g) => (
-          <div key={g.id}>
-            <dt className="font-bold">{g.name}</dt>
-            <dd className="mt-2 flex flex-wrap gap-2">
-              {g.options.map((o) => (
-                <span
-                  key={o.id}
-                  className="inline-flex items-center gap-2 rounded-[var(--radius-pill)] bg-white/70 px-3 py-1.5 text-sm ring-1 ring-cocoa-900/10"
-                >
-                  {o.swatch && (
-                    <span
-                      aria-hidden="true"
-                      className="h-3.5 w-3.5 rounded-full ring-1 ring-cocoa-900/20"
-                      style={{ background: o.swatch }}
-                    />
-                  )}
-                  {o.name}
-                  {o.priceDelta > 0 && (
-                    <span className="text-cocoa-700">+{formatMoney(o.priceDelta)}</span>
-                  )}
-                </span>
-              ))}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  );
-}
-
-/**
- * Online ordering arrives with the builder and checkout (US2, US3). Until then the page points
- * customers to Instagram, where the baker takes orders today.
- */
-function OrderPanel({ cake }: { cake: CakeDetail }) {
+/** Paused cakes ("Back soon", FR-004) can't be built or added to the cart. */
+function PausedPanel() {
   return (
     <section className="mt-10 rounded-[var(--radius-lg)] bg-cocoa-900 p-6 text-cream-50">
-      {cake.available ? (
-        <>
-          <h2 className="font-display text-2xl font-semibold">Online ordering is almost ready</h2>
-          <p className="mt-2 text-cream-200">
-            Until then, send me a message with the cake, size and date you&rsquo;d like and
-            I&rsquo;ll confirm it personally.
-          </p>
-        </>
-      ) : (
-        <>
-          <h2 className="font-display text-2xl font-semibold">This one is taking a little break</h2>
-          <p className="mt-2 text-cream-200">
-            Follow along on Instagram to hear the moment it&rsquo;s back.
-          </p>
-        </>
-      )}
+      <h2 className="font-display text-2xl font-semibold">This one is taking a little break</h2>
+      <p className="mt-2 text-cream-200">
+        Follow along on Instagram to hear the moment it&rsquo;s back.
+      </p>
       <Link
         href={site.instagramUrl}
         className="mt-5 inline-block rounded-[var(--radius-pill)] bg-blush-400 px-6 py-3 font-bold text-cocoa-900 transition-transform hover:-translate-y-0.5 active:scale-95"
       >
-        Message me on Instagram
+        Follow on Instagram
       </Link>
     </section>
   );
