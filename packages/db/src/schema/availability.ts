@@ -23,6 +23,8 @@ export const bakerySettings = pgTable("bakery_settings", {
   pickupInstructions: text("pickup_instructions").notNull().default(""),
   bookingWindowDays: integer("booking_window_days").notNull().default(60),
   holdMinutes: integer("hold_minutes").notNull().default(15),
+  /** Version of the placeholder menu loaded by `db:seed`; deploys reload it when it is older. */
+  sampleMenuVersion: integer("sample_menu_version").notNull().default(0),
   ...timestamps,
 });
 

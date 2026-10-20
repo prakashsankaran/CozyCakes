@@ -16,10 +16,10 @@ is validated against its zod schema before it is sent. Authenticated calls use t
 | `GET /api/v1/cakes?occasion=&dietary=&flavour=` | List visible/paused cakes as cards: `{ cakes: CakeCard[] }` | Each facet takes a comma-separated list; occasion/flavour match any, dietary must match all. `paused` returned with `available: false`. `400 INVALID_QUERY` on bad input |
 | `GET /api/v1/cakes/{slug}` | Cake detail with sizes, option groups, lead time, earliest date | `404 CAKE_NOT_FOUND` for unknown, draft or archived cakes |
 | `GET /api/v1/tags` | Filter tags: `{ tags: Tag[] }` | |
-| `POST /api/v1/cart/quote` | Re-price a cart, validate items, return line totals and warnings | Body: `{ items: CartItem[], postal_code?, discount_code? }` |
+| `POST /api/v1/cart/quote` | Re-price a cart, validate items, return line totals and warnings | Body: `{ items: CartItem[] }` (postal code and discount code arrive with US3). Returns `{ lines: QuoteLine[], subtotal, itemCount, leadTimeDays, earliestDate }`; each line has `status` `ok` · `invalid` (choices no longer offered) · `unavailable` (cake paused or removed) plus customer-worded `issues`; only `ok` lines count. `400 INVALID_CART` on a malformed body |
 | `GET /api/v1/availability?from=&to=&lead_days=&fulfilment=` | Calendar of dates with `available` / `full` / `blocked` / `too_soon` and slots | Bakery time zone |
 | `GET /api/v1/delivery/check?postal_code=` | Is delivery available and fee | |
-| `POST /api/v1/uploads/reference` | Get a signed upload for a reference photo | Returns upload URL + `reference_upload_id`; 10 MB, images only |
+| `POST /api/v1/uploads/reference` | Get a signed upload for a reference photo | Body: `{ mime, bytes }` (JPEG, PNG, WebP, HEIC; ≤ 10 MB). Returns `{ referenceUploadId, uploadUrl, fields, url }`: the browser POSTs the file with `fields` to `uploadUrl` (Cloudinary) and keeps `url`. `400 INVALID_UPLOAD`; `503 UPLOADS_UNAVAILABLE` when Cloudinary is not configured |
 
 ## Checkout & payment
 

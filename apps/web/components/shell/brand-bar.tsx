@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CartCount } from "@/components/cart/cart-count";
 import { Wordmark } from "./logo";
 
 const links = [
@@ -20,9 +21,10 @@ export function BrandBar() {
               <li key={l.href}>
                 <Link
                   href={l.href}
-                  className="rounded-[var(--radius-pill)] px-4 py-2 font-semibold text-cocoa-700 transition-colors hover:bg-blush-100 hover:text-cocoa-900"
+                  className="flex items-center gap-1.5 rounded-[var(--radius-pill)] px-4 py-2 font-semibold text-cocoa-700 transition-colors hover:bg-blush-100 hover:text-cocoa-900"
                 >
                   {l.label}
+                  {l.href === "/cart" && <CartCount />}
                 </Link>
               </li>
             ))}

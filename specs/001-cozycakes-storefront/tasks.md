@@ -105,20 +105,21 @@ to Instagram until US2/US3 land.
 
 ### Tests for User Story 2
 
-- [ ] T036 [P] [US2] Unit tests for pricing rules in `packages/core/tests/pricing.test.ts`
-- [ ] T037 [P] [US2] Playwright journey for builder and cart in `apps/web/tests/e2e/build-and-cart.spec.ts`
+- [x] T036 [P] [US2] Unit tests for pricing rules in `packages/core/tests/pricing.test.ts`
+- [x] T037 [P] [US2] Playwright journey for builder and cart in `apps/web/tests/e2e/build-and-cart.spec.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T038 [P] [US2] Implement pricing (`unit_price`, `subtotal`) and cart validation in `packages/core/src/pricing.ts`
-- [ ] T039 [US2] Implement `POST /api/v1/cart/quote` in `apps/web/app/api/v1/cart/quote/route.ts`
-- [ ] T040 [US2] Implement `POST /api/v1/uploads/reference` (signed Cloudinary upload, 10 MB images only)
-- [ ] T041 [US2] Build the step-by-step builder (size → flavour → frosting → dietary → add-ons → message → photo) in `apps/web/components/builder/`
-- [ ] T042 [US2] Build the "cake assembles" visual summary that updates with each choice
-- [ ] T043 [US2] Implement device-persisted cart store in `apps/web/lib/cart/`
-- [ ] T044 [US2] Build slide-in cart sheet with edit/remove/quantity and add-to-cart animation in `apps/web/components/cart/`
+- [x] T038 [P] [US2] Implement pricing (`unit_price`, `subtotal`) and cart validation in `packages/core/src/pricing.ts`
+- [x] T039 [US2] Implement `POST /api/v1/cart/quote` in `apps/web/app/api/v1/cart/quote/route.ts`
+- [x] T040 [US2] Implement `POST /api/v1/uploads/reference` (signed Cloudinary upload, 10 MB images only); switched on by `CLOUDINARY_URL`, otherwise the photo step points to Instagram
+- [x] T041 [US2] Build the step-by-step builder (size → flavour → frosting → dietary → add-ons → message → photo) in `apps/web/components/builder/`
+- [x] T042 [US2] Build the "cake assembles" visual summary that updates with each choice
+- [x] T043 [US2] Implement device-persisted cart store in `apps/web/lib/cart/`
+- [x] T044 [US2] Build slide-in cart sheet with edit/remove/quantity and add-to-cart animation in `apps/web/components/cart/`
 
-**Checkpoint**: Customers can build and collect cakes in a cart
+**Checkpoint**: Customers can build and collect cakes in a cart. ✅ Delivered 2026-10-20; until US3
+the cart copies an order summary and opens Instagram instead of checking out.
 
 ---
 
@@ -210,8 +211,9 @@ to Instagram until US2/US3 land.
 - [ ] T078 Replace placeholder brand assets with owner-supplied logo, photos and palette
 - [ ] T079 Delight pass: copy voice review (XR-004), empty/error/loading states (XR-005)
 - [ ] T080 Run quickstart.md validation end to end
-- [x] T081 Deploy on Vercel: build script that migrates and seeds an empty catalog (`apps/web/vercel.json`, `apps/web/scripts/vercel-build.sh`, `db:seed --if-empty`) and a local Postgres `docker-compose.yml`
+- [x] T081 Deploy on Vercel: build script that migrates and loads the sample menu when it is missing or older than `SAMPLE_MENU_VERSION` (`apps/web/vercel.json`, `apps/web/scripts/vercel-build.sh`, `db:seed --if-outdated`) and a local Postgres `docker-compose.yml`
 - [ ] T082 Give preview deployments their own Neon database branch before US3 takes real orders
+- [ ] T083 When US5 lets the baker manage the real menu, retire `SAMPLE_MENU_VERSION` reloads so a deploy can never replace the baker's cakes
 
 ---
 

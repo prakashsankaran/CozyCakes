@@ -48,8 +48,12 @@ Belongs to Cake. `label` ("0.5 kg"), `serves` ("4–6"), `price` (minor units > 
 The cart lives on the device (local storage) for guests and is mirrored to the account when signed
 in. It is never trusted: the server re-prices it on every quote.
 
-**CartItem**: `cake_id`, `size_id`, `option_ids[]`, `message` (≤ 40 chars), `reference_upload_id`
-(optional), `quantity` (1–5).
+**CartItem**: `id` (device-generated line id), `cake_id`, `size_id`, `option_ids[]`, `message`
+(≤ 40 chars), `reference_photo` (optional `{ upload_id, url }` of a ReferenceUpload), `quantity`
+(1–5). At most 20 lines. Pricing: `unit_price = size.price + Σ chosen option.price_delta`,
+`line_total = unit_price × quantity` (`packages/core/src/pricing.ts`, shared by the builder and
+the quote endpoint). The device also keeps a display snapshot (name, size, choices, unit price)
+so the cart renders offline; it is never sent for pricing.
 
 ## Availability
 
@@ -57,7 +61,8 @@ in. It is never trusted: the server re-prices it on every quote.
 
 `time_zone` (default `Asia/Kolkata`), `currency` (default `INR`), `default_daily_capacity` (int,
 default 3), `pickup_address`, `pickup_instructions`, `booking_window_days` (default 60),
-`hold_minutes` (default 15).
+`hold_minutes` (default 15), `sample_menu_version` (int, default 0: which placeholder menu
+`db:seed` last loaded; deploys reload the sample menu when it is older than the code's).
 
 ### TimeSlot
 

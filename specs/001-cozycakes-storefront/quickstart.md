@@ -33,7 +33,10 @@ Expose the webhook locally (e.g., a tunnel) and point the Razorpay test webhook 
 2. In the Vercel project, Storage → Create Database → Neon (Postgres), connected to all
    environments. This sets `DATABASE_URL`.
 3. Redeploy. `apps/web/vercel.json` runs `scripts/vercel-build.sh`, which applies migrations and
-   seeds the sample menu into an empty catalog before building. Every PR gets a preview URL.
+   loads the sample menu when it is missing or outdated before building. Every PR gets a preview
+   URL.
+4. Optional: add `CLOUDINARY_URL` (from the Cloudinary dashboard) in Vercel's Environment
+   Variables to switch on reference photo uploads.
 
 ## Automated checks
 

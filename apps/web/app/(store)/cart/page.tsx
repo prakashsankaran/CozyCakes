@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/shell/coming-soon";
+import { CartView } from "@/components/cart/cart-view";
 
 export const metadata: Metadata = { title: "Your cart" };
 
-/** Placeholder until the cart lands with US2 (tasks T043–T044). */
+/** Full-page cart for the bottom bar's Cart tab; the same view slides in as a sheet elsewhere. */
 export default function CartPage() {
   return (
-    <ComingSoon
-      emoji="🥣"
-      title="Your cart is warming up"
-      body="Building your own cake and checking out online is coming very soon. For now, have a look around and pick your favourite."
-    />
+    <div className="mx-auto max-w-xl px-4 pt-8 sm:px-6 sm:pt-12">
+      <h1 className="font-display text-4xl font-semibold">Your cart</h1>
+      <div className="mt-6">
+        <CartView />
+      </div>
+    </div>
   );
 }
