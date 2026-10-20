@@ -4,7 +4,8 @@
  * Default mode wipes catalog and availability tables, so it refuses to run against production.
  * `--if-outdated` reloads the menu only when the database has no cakes or holds an older sample
  * menu than `SAMPLE_MENU_VERSION`; deploys use it (tasks T081). Bump the version when the sample
- * menu changes, and stop bumping it once the baker manages the real menu (US5).
+ * menu changes. Once the owner edits the menu in the back office (US5) the version becomes -1 and
+ * deploys never touch the catalog again (tasks T083).
  */
 import { eq } from "drizzle-orm";
 import { createDb } from "./client";
@@ -36,9 +37,15 @@ if (ifOutdated) {
     .from(bakerySettings)
     .where(eq(bakerySettings.id, 1));
   const hasCakes = (await db.$count(cakes)) > 0;
-  if (hasCakes && (settings?.version ?? 0) >= SAMPLE_MENU_VERSION) {
+  const version = settings?.version ?? 0;
+  // -1 means the owner has edited the menu in the back office: never replace it.
+  if (version < 0 || (hasCakes && version >= SAMPLE_MENU_VERSION)) {
     await db.$client.end();
-    console.log(`Sample menu v${settings?.version} is current; leaving the catalog untouched`);
+    console.log(
+      version < 0
+        ? "The owner manages the menu; leaving the catalog untouched"
+        : `Sample menu v${version} is current; leaving the catalog untouched`,
+    );
     process.exit(0);
   }
 }

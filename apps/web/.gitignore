@@ -42,3 +42,6 @@ next-env.d.ts
 !.env.example
 /playwright-report
 /test-results
+
+# local email outbox (MAIL_OUTBOX_DIR)
+/.outbox/

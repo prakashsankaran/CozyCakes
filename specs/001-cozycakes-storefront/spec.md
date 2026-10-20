@@ -154,6 +154,15 @@ photo, and move it through its statuses. They can cancel an order with a reason.
 **Why this priority**: The business cannot run online without the baker controlling what is sold
 and when; it is required for any real order to be fulfilled.
 
+**Who runs it** *(decided 2026-10-20)*: The site's owner (Prakash) runs the back office with full
+control. The baker supplies recipes, photos and menu details but never has to sign in. A limited
+staff login for the baker (orders only) is optional and arrives with the orders board. The owner's
+address is configured on the server (`OWNER_EMAIL`), so the owner can never be locked out.
+
+**Delivered in two parts**: menu, choices, photos, capacity and days off ship first (2026-10-20);
+the orders board, order statuses, staff logins, time slots and delivery zones ship with online
+checkout (User Story 3), because there are no orders to manage before then.
+
 **Independent Test**: Sign in as the baker on a phone, create a new cake with options, block a date,
 receive a test order, and move it to "Delivered", verifying the storefront reflects each change.
 
@@ -260,7 +269,8 @@ device, and verify both persist and pre-fill checkout.
 
 **Back office (baker)**
 
-- **FR-020**: Only authenticated staff MUST be able to access the back office.
+- **FR-020**: Only authenticated staff MUST be able to access the back office. The owner has full
+  control; staff (when added) see and move orders only.
 - **FR-021**: Staff MUST be able to create, edit, reorder, hide, and archive cakes, including
   photos, sizes and prices, option groups and add-on prices, lead time, and tags.
 - **FR-022**: Staff MUST be able to set default daily capacity, override capacity for specific
@@ -318,7 +328,7 @@ device, and verify both persist and pre-fill checkout.
 - **Availability**: daily capacity, per-date overrides, blocked dates, time slots, delivery area
   and fees.
 - **Discount Code**: code, type (percentage/fixed), validity window, usage limits.
-- **Staff User**: back-office account with role.
+- **Staff User**: back-office account with role (`owner` or `staff`; customers have no access).
 
 ## Success Criteria *(mandatory)*
 
@@ -350,7 +360,8 @@ device, and verify both persist and pre-fill checkout.
   per cake; same-day orders are not offered in the MVP.
 - **Capacity**: Capacity is a simple number of orders per day (not per oven hour), set by the
   baker.
-- **Staff**: One baker/owner with a staff account, possibly one helper; no complex roles.
+- **Staff**: The site owner (Prakash) runs the back office; the baker can optionally get a limited
+  staff login later. No complex roles.
 - **Brand assets**: The Instagram page (@cosycaker) could not be accessed during spec writing, so
   branding is inferred from the name "CozyCakes". Logo, photos, and final palette will be supplied
   by the owner; placeholders are used until then.

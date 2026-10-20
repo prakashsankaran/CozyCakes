@@ -92,6 +92,14 @@ latest stable releases at implementation time unless a task says otherwise.
   both web cookies and Expo clients.
 - **Alternatives**: Auth.js (mature, weaker native-app story); Clerk (fast, but per-user cost and
   external UI).
+- **As built (US5, 2026-10-20)**: 6-digit codes, valid 10 minutes, 5 attempts, stored hashed. The
+  owner is whoever's address is in `OWNER_EMAIL` (comma-separated), checked on every request, so
+  the owner can never be locked out and no address lives in the repo. Until customer accounts
+  (US6), codes are only emailed to the owner and staff; the form gives everyone the same answer so
+  it doesn't reveal who has access. Sessions are signed with `BETTER_AUTH_SECRET`, or, when unset,
+  a secret derived from `DATABASE_URL` (already a server-only secret), so there is one less setting
+  to manage. `proxy.ts` only redirects visitors without a session cookie; the role check runs on
+  every back-office page and Server Action (`apps/web/lib/admin/dal.ts`).
 
 ## 9. Images and uploads
 
@@ -112,6 +120,10 @@ latest stable releases at implementation time unless a task says otherwise.
   added without touching order logic.
 - **Rationale**: Email is reliable and cheap for MVP; WhatsApp is how this audience already talks
   to the baker, so the seam is designed in now.
+- **As built (US5)**: sign-in codes go through Resend's HTTP API with `fetch` (no SDK). Without a
+  verified domain, `EMAIL_FROM` defaults to Resend's shared test sender, which can only email the
+  Resend account's own address: enough for the owner to sign in. `MAIL_OUTBOX_DIR` writes emails to
+  JSON files instead, for local development and end-to-end tests.
 
 ## 11. Delivery area
 
