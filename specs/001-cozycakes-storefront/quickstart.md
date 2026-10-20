@@ -36,7 +36,11 @@ Expose the webhook locally (e.g., a tunnel) and point the Razorpay test webhook 
    loads the sample menu when it is missing or outdated before building. Every PR gets a preview
    URL.
 4. Optional: add `CLOUDINARY_URL` (from the Cloudinary dashboard) in Vercel's Environment
-   Variables to switch on reference photo uploads.
+   Variables to switch on cake photo and reference photo uploads.
+5. Back office (`/admin`): add `OWNER_EMAIL` (the owner's email) and `RESEND_API_KEY` (from a free
+   Resend account created with that same email) in Vercel's Environment Variables, then redeploy.
+   Sign in at `/admin` with a code emailed to that address. `BETTER_AUTH_SECRET` is optional.
+   Locally, set `MAIL_OUTBOX_DIR=.outbox` instead of a Resend key and read codes from the JSON files.
 
 ## Automated checks
 

@@ -4,3 +4,4 @@ export * from "./schemas/catalog";
 export * from "./catalog";
 export * from "./schemas/cart";
 export * from "./pricing";
+export * from "./schemas/admin";

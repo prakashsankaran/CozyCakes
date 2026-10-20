@@ -49,6 +49,12 @@ is validated against its zod schema before it is sent. Authenticated calls use t
 
 ## Back office (role `staff` or `owner`)
 
+*As built (US5, 2026-10-20)*: the web back office writes through Next.js Server Actions
+(`apps/web/app/(admin)/admin/actions.ts`) that take the same zod inputs as these endpoints
+(`packages/core/src/schemas/admin.ts`) and the same repository (`packages/db/src/repositories/admin.ts`).
+The REST endpoints below are added when the mobile app needs them; menu, choices, settings and
+availability are owner-only, and staff get the order endpoints.
+
 | Method & path | Purpose |
 |---------------|---------|
 | `GET /api/v1/admin/orders?date=&status=` | Orders board data |

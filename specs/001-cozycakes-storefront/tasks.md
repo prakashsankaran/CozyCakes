@@ -131,22 +131,23 @@ the cart copies an order summary and opens Instagram instead of checking out.
 
 ### Tests for User Story 5
 
-- [ ] T045 [P] [US5] Unit tests for the order state machine in `packages/core/tests/order-state.test.ts`
-- [ ] T046 [P] [US5] Playwright journey for back office in `apps/web/tests/e2e/admin.spec.ts`
+- [ ] T045 [P] [US5] Unit tests for the order state machine in `packages/core/tests/order-state.test.ts` *(moved: ships with US3 orders)*
+- [x] T046 [P] [US5] Playwright journey for back office in `apps/web/tests/e2e/admin.spec.ts` (sign-in code read from a local outbox, new choice group, new cake shown in the shop and builder, archive, day off), plus input-schema unit tests in `packages/core/tests/admin.test.ts`
 
 ### Implementation for User Story 5
 
-- [ ] T047 [US5] Configure Better Auth with email OTP and staff/owner roles in `apps/web/lib/auth.ts`
-- [ ] T048 [US5] Protect `/admin` and `/api/v1/admin/*` by role in `apps/web/proxy.ts` (Next.js 16 name for middleware)
-- [ ] T049 [P] [US5] Implement order state machine and status-event recording in `packages/core/src/orders/state.ts`
-- [ ] T050 [US5] Implement admin cake, option-group and photo-upload endpoints (signed Cloudinary uploads)
-- [ ] T051 [US5] Implement admin settings, availability, time-slot and delivery-zone endpoints
-- [ ] T052 [US5] Implement admin orders list/detail/transition/cancel endpoints
-- [ ] T053 [US5] Build orders board grouped by date and status in `apps/web/app/(admin)/admin/page.tsx`
-- [ ] T054 [US5] Build cake editor in `apps/web/app/(admin)/admin/cakes/`
-- [ ] T055 [US5] Build availability calendar and settings screens in `apps/web/app/(admin)/admin/availability/`
+- [x] T047 [US5] Configure Better Auth with email OTP and staff/owner roles in `apps/web/lib/auth.ts` (owner from `OWNER_EMAIL`; codes only emailed to the owner and staff; email in `apps/web/lib/email.ts`)
+- [x] T048 [US5] Protect `/admin` in `apps/web/proxy.ts` (Next.js 16 name for middleware) as a fast redirect, with the real role check in `apps/web/lib/admin/dal.ts` on every page and Server Action
+- [ ] T049 [P] [US5] Implement order state machine and status-event recording in `packages/core/src/orders/state.ts` *(moved: ships with US3 orders)*
+- [x] T050 [US5] Implement admin cake, option-group and photo-upload writes (signed Cloudinary uploads) as Server Actions in `apps/web/app/(admin)/admin/actions.ts` over `packages/db/src/repositories/admin.ts`, validated with `packages/core/src/schemas/admin.ts`; the `/api/v1/admin/*` REST endpoints wait for the mobile app
+- [x] T051 [US5] Implement admin settings and day availability writes (same place as T050); time slots and delivery zones move to US3 with the checkout date picker
+- [ ] T052 [US5] Implement admin orders list/detail/transition/cancel endpoints *(moved: ships with US3 orders)*
+- [ ] T053 [US5] Build orders board grouped by date and status in `apps/web/app/(admin)/admin/page.tsx` *(moved: ships with US3 orders, together with optional staff logins)*
+- [x] T054 [US5] Build cake editor and menu list in `apps/web/app/(admin)/admin/(kitchen)/menu/` and builder choices editor in `.../choices/`
+- [x] T055 [US5] Build capacity, pickup and days-off screen in `apps/web/app/(admin)/admin/(kitchen)/dates/`
 
-**Checkpoint**: The baker controls menu and capacity
+**Checkpoint**: The baker controls menu and capacity. ✅ Menu, choices, photos, capacity and days off
+delivered 2026-10-20 with the site owner as the back-office owner; orders board follows with US3.
 
 ---
 
@@ -213,7 +214,7 @@ the cart copies an order summary and opens Instagram instead of checking out.
 - [ ] T080 Run quickstart.md validation end to end
 - [x] T081 Deploy on Vercel: build script that migrates and loads the sample menu when it is missing or older than `SAMPLE_MENU_VERSION` (`apps/web/vercel.json`, `apps/web/scripts/vercel-build.sh`, `db:seed --if-outdated`) and a local Postgres `docker-compose.yml`
 - [ ] T082 Give preview deployments their own Neon database branch before US3 takes real orders
-- [ ] T083 When US5 lets the baker manage the real menu, retire `SAMPLE_MENU_VERSION` reloads so a deploy can never replace the baker's cakes
+- [x] T083 When US5 lets the baker manage the real menu, retire `SAMPLE_MENU_VERSION` reloads so a deploy can never replace the baker's cakes (any back-office menu change sets `bakery_settings.sample_menu_version` to -1, and `db:seed --if-outdated` then leaves the catalog alone)
 
 ---
 

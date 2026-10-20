@@ -188,8 +188,9 @@ export function CakeArt({
   return (
     <svg
       viewBox="0 0 400 400"
-      role="img"
-      aria-label={title}
+      role={title ? "img" : undefined}
+      aria-label={title || undefined}
+      aria-hidden={title ? undefined : true}
       preserveAspectRatio="xMidYMid slice"
       className={className}
     >

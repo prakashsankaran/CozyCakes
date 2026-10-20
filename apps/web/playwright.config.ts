@@ -1,4 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
+import { OUTBOX_DIR, TEST_OWNER_EMAILS } from "./tests/e2e/outbox";
 
 const port = Number(process.env.PORT ?? 3100);
 // Use a preinstalled Chromium when provided (e.g. cloud dev containers); otherwise Playwright's own.
@@ -31,11 +32,14 @@ export default defineConfig({
     url: `http://localhost:${port}`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
-    // A dummy Cloudinary account switches reference photo uploads on; tests stub the upload itself.
+    // A dummy Cloudinary account switches photo uploads on; tests stub the upload itself.
+    // Sign-in codes go to a local outbox, and each browser project signs in as its own owner.
     env: {
       ...(process.env as Record<string, string>),
       CLOUDINARY_URL:
         process.env.CLOUDINARY_URL ?? "cloudinary://test-key:test-secret@cozycakes-test",
+      MAIL_OUTBOX_DIR: OUTBOX_DIR,
+      OWNER_EMAIL: TEST_OWNER_EMAILS.join(","),
     },
   },
 });
