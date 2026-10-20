@@ -1,0 +1,20 @@
+# Local development database. Start with `docker compose up -d`, then use
+# DATABASE_URL=postgres://cozy:cozy@localhost:5432/cozycakes
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: cozy
+      POSTGRES_PASSWORD: cozy
+      POSTGRES_DB: cozycakes
+    ports:
+      - "5432:5432"
+    volumes:
+      - cozycakes-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cozy"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  cozycakes-db:

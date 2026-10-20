@@ -210,6 +210,8 @@ to Instagram until US2/US3 land.
 - [ ] T078 Replace placeholder brand assets with owner-supplied logo, photos and palette
 - [ ] T079 Delight pass: copy voice review (XR-004), empty/error/loading states (XR-005)
 - [ ] T080 Run quickstart.md validation end to end
+- [x] T081 Deploy on Vercel: build script that migrates and seeds an empty catalog (`apps/web/vercel.json`, `apps/web/scripts/vercel-build.sh`, `db:seed --if-empty`) and a local Postgres `docker-compose.yml`
+- [ ] T082 Give preview deployments their own Neon database branch before US3 takes real orders
 
 ---
 
