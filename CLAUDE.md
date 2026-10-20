@@ -9,6 +9,15 @@
 - Design must feel warm, modern, and delightful, never like a conventional ecommerce template.
   Build mobile-first and keep domain logic in shared packages so a mobile app can reuse it.
 
+## Working in the code
+
+- Monorepo (pnpm + Turborepo): `apps/web` (Next.js 16), `packages/core`, `packages/db`,
+  `packages/design-tokens`. Domain rules belong in `packages/core`, not in the web app.
+- Next.js 16 differs from older versions (Cache Components, `proxy.ts`, async `params`): read
+  `apps/web/AGENTS.md` and the docs in `apps/web/node_modules/next/dist/docs/` before writing code.
+- Before pushing: `pnpm format:check && pnpm lint && pnpm typecheck && pnpm test`, plus
+  `pnpm --filter web build && pnpm test:e2e` with a seeded database.
+
 ## Active feature
 
 - `specs/001-cozycakes-storefront/`: end-to-end MVP storefront and back office.

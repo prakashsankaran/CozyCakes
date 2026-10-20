@@ -5,16 +5,17 @@
 JSON over HTTPS. Schemas are defined in zod in `packages/core/src/schemas` and published as an
 OpenAPI document at `/api/v1/openapi.json`. Money is integer minor units. Errors use
 `{ "error": { "code": string, "message": string, "details"?: object } }` with standard HTTP status
-codes. Authenticated calls use the session cookie (web) or `Authorization: Bearer` (mobile).
+codes. JSON field names are camelCase (query parameters stay as documented below). Every response
+is validated against its zod schema before it is sent. Authenticated calls use the session cookie (web) or `Authorization: Bearer` (mobile).
 
 ## Public storefront
 
 | Method & path | Purpose | Notes |
 |---------------|---------|-------|
 | `GET /api/v1/home` | Hero content, featured cakes, occasions | Cached |
-| `GET /api/v1/cakes?occasion=&dietary=&flavour=` | List visible/paused cakes as cards | `paused` returned with `available: false` |
-| `GET /api/v1/cakes/{slug}` | Cake detail with sizes, option groups, lead time, earliest date | |
-| `GET /api/v1/tags` | Filter tags | |
+| `GET /api/v1/cakes?occasion=&dietary=&flavour=` | List visible/paused cakes as cards: `{ cakes: CakeCard[] }` | Each facet takes a comma-separated list; occasion/flavour match any, dietary must match all. `paused` returned with `available: false`. `400 INVALID_QUERY` on bad input |
+| `GET /api/v1/cakes/{slug}` | Cake detail with sizes, option groups, lead time, earliest date | `404 CAKE_NOT_FOUND` for unknown, draft or archived cakes |
+| `GET /api/v1/tags` | Filter tags: `{ tags: Tag[] }` | |
 | `POST /api/v1/cart/quote` | Re-price a cart, validate items, return line totals and warnings | Body: `{ items: CartItem[], postal_code?, discount_code? }` |
 | `GET /api/v1/availability?from=&to=&lead_days=&fulfilment=` | Calendar of dates with `available` / `full` / `blocked` / `too_soon` and slots | Bakery time zone |
 | `GET /api/v1/delivery/check?postal_code=` | Is delivery available and fee | |

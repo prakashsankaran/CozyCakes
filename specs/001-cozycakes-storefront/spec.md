@@ -4,7 +4,7 @@
 
 **Created**: 2026-10-20
 
-**Status**: Draft (awaiting owner review)
+**Status**: Approved 2026-10-20 (owner accepted the defaults below; any can be revisited)
 
 **Input**: User description: "Create a modern, sleek and visually appealing ecommerce website for
 CozyCakes, a home cake business, with end-to-end functionality. It must be responsive because it
@@ -354,6 +354,8 @@ device, and verify both persist and pre-fill checkout.
 - **Brand assets**: The Instagram page (@cosycaker) could not be accessed during spec writing, so
   branding is inferred from the name "CozyCakes". Logo, photos, and final palette will be supplied
   by the owner; placeholders are used until then.
+- **Interim ordering**: Until online checkout (User Story 3) ships, cake pages invite customers to
+  order by messaging the baker on Instagram.
 - **Notifications**: Email is the baseline channel; WhatsApp notifications are desirable and will
   be added when a provider is chosen.
 - **Out of scope for this feature**: native mobile app (planned next; this feature keeps it

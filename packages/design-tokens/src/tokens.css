@@ -1,0 +1,29 @@
+/* Mirrors tokens.ts as a Tailwind v4 theme (also emitted as :root CSS variables). Kept in sync by tokens.test.ts. */
+@theme {
+  --color-cream-50: #fff8f0;
+  --color-cream-100: #fbefe2;
+  --color-cream-200: #f5e1cc;
+  --color-cream-300: #ebcbaa;
+  --color-cocoa-500: #7a5a50;
+  --color-cocoa-700: #5c3b33;
+  --color-cocoa-900: #3b2420;
+  --color-blush-100: #fdebef;
+  --color-blush-200: #fadbe1;
+  --color-blush-400: #f4b6c2;
+  --color-blush-700: #a84860;
+  --color-caramel-200: #f3d3b5;
+  --color-caramel-400: #d9925b;
+  --color-caramel-700: #8f5424;
+  --color-pistachio-200: #dcead4;
+  --color-pistachio-400: #a8c99b;
+  --color-pistachio-700: #4e7342;
+  --color-white: #ffffff;
+
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-pill: 999px;
+
+  --shadow-soft: 0 8px 24px -12px rgba(59, 36, 32, 0.25);
+  --shadow-lifted: 0 24px 48px -20px rgba(59, 36, 32, 0.35);
+}

@@ -19,7 +19,8 @@ zone. All tables have `created_at` / `updated_at`.
 | story | text | markdown, ≤ 2,000 chars |
 | photos | Photo[] | 1–10; first is cover; each has `url`, `alt` (required), `width`, `height` |
 | occasion_tags | text[] | from Tag list (e.g., birthday, anniversary, wedding, just-because) |
-| dietary_tags | text[] | e.g., eggless, contains-nuts |
+| dietary_tags | text[] | e.g., eggless, nut-free; a tag means the cake is (or can be made) that way |
+| flavour_tags | text[] | used by the storefront flavour filter (FR-002) |
 | lead_time_days | int | ≥ 0; default 2 |
 | status | enum | `draft` · `visible` · `paused` ("Back soon") · `archived` |
 | featured | bool | shown on home page |
@@ -85,6 +86,10 @@ int), `blocked` (bool), `note`. Used as the lock row for capacity checks.
 ## Customers & Staff
 
 ### User
+
+Created with Better Auth in US5 (tasks T047), which owns the user/session tables; until then
+`orders.user_id` and `order_status_events.actor_user_id` are nullable text ids without foreign keys.
+
 
 `id`, `email` (unique), `name`, `phone`, `role` (`customer` | `staff` | `owner`), `email_verified`.
 

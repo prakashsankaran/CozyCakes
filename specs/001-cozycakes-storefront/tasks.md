@@ -31,15 +31,15 @@ Monorepo: `apps/web/` (Next.js app), `packages/core/`, `packages/db/`, `packages
 
 **Purpose**: Monorepo, tooling, and CI
 
-- [ ] T001 Create pnpm workspace and Turborepo config in `package.json`, `pnpm-workspace.yaml`, `turbo.json`
-- [ ] T002 Create shared TypeScript strict config in `tsconfig.base.json`
-- [ ] T003 [P] Scaffold Next.js App Router app with Tailwind CSS in `apps/web/`
-- [ ] T004 [P] Scaffold `packages/core/` (TypeScript library + Vitest)
-- [ ] T005 [P] Scaffold `packages/db/` (Drizzle ORM + drizzle-kit)
-- [ ] T006 [P] Scaffold `packages/design-tokens/` exporting tokens as TS objects and CSS variables
-- [ ] T007 [P] Configure ESLint and Prettier at the repo root (`eslint.config.mjs`, `.prettierrc`)
-- [ ] T008 [P] Add `apps/web/.env.example` documenting every environment variable
-- [ ] T009 Add GitHub Actions CI running lint, typecheck, unit tests and build in `.github/workflows/ci.yml`
+- [x] T001 Create pnpm workspace and Turborepo config in `package.json`, `pnpm-workspace.yaml`, `turbo.json`
+- [x] T002 Create shared TypeScript strict config in `tsconfig.base.json`
+- [x] T003 [P] Scaffold Next.js App Router app with Tailwind CSS in `apps/web/`
+- [x] T004 [P] Scaffold `packages/core/` (TypeScript library + Vitest)
+- [x] T005 [P] Scaffold `packages/db/` (Drizzle ORM + drizzle-kit)
+- [x] T006 [P] Scaffold `packages/design-tokens/` exporting tokens as TS objects and CSS variables
+- [x] T007 [P] Configure ESLint (Next.js config in `apps/web/eslint.config.mjs`) and Prettier at the repo root (`.prettierrc`)
+- [x] T008 [P] Add `apps/web/.env.example` documenting every environment variable
+- [x] T009 Add GitHub Actions CI running lint, typecheck, unit tests and build in `.github/workflows/ci.yml`
 
 ---
 
@@ -49,23 +49,23 @@ Monorepo: `apps/web/` (Next.js app), `packages/core/`, `packages/db/`, `packages
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T010 Define colour, type, radius, shadow, spacing and motion tokens in `packages/design-tokens/src/tokens.ts`
-- [ ] T011 Wire tokens into Tailwind theme and global CSS variables in `apps/web/app/globals.css`
-- [ ] T012 [P] Load display (Fraunces) and text (Nunito Sans) fonts via `next/font` in `apps/web/app/layout.tsx`
-- [ ] T013 Build the app shell: top brand bar, thumb-reachable bottom navigation (Home, Cakes, Cart, Me) and page transitions in `apps/web/components/shell/`
-- [ ] T014 [P] Add `useReducedMotion`-aware motion helpers in `apps/web/components/motion/`
-- [ ] T015 Define Drizzle schema for catalog (Cake, Size, OptionGroup, Option, CakeOptionGroup, Tag) in `packages/db/src/schema/catalog.ts`
-- [ ] T016 [P] Define Drizzle schema for availability (BakerySettings, TimeSlot, DayAvailability, DeliveryZone, CapacityHold) in `packages/db/src/schema/availability.ts`
-- [ ] T017 [P] Define Drizzle schema for users, orders, payments, discounts and uploads in `packages/db/src/schema/{users,orders}.ts`
-- [ ] T018 Generate the initial SQL migration in `packages/db/migrations/`
-- [ ] T019 Create seed script with placeholder cakes, options, tags, slots, zones and an owner account in `packages/db/src/seed.ts`
-- [ ] T020 [P] Implement money formatting and minor-unit helpers in `packages/core/src/money.ts` with tests
-- [ ] T021 [P] Implement bakery-time-zone date helpers in `packages/core/src/dates.ts` with tests
-- [ ] T022 Implement zod schemas for catalog read models in `packages/core/src/schemas/catalog.ts`
-- [ ] T023 Implement a catalog repository over Drizzle in `packages/db/src/repositories/catalog.ts`
-- [ ] T024 [P] Add Cloudinary-aware image loader and placeholder art for cakes without photos in `apps/web/lib/images.ts`
-- [ ] T025 [P] Add API error helper and `/api/v1` route conventions in `apps/web/lib/api.ts`
-- [ ] T026 [P] Add PWA manifest, icons and offline page in `apps/web/app/manifest.ts`, `apps/web/app/offline/`
+- [x] T010 Define colour, type, radius, shadow, spacing and motion tokens in `packages/design-tokens/src/tokens.ts`
+- [x] T011 Wire tokens into Tailwind theme and global CSS variables in `apps/web/app/globals.css`
+- [x] T012 [P] Load display (Fraunces) and text (Nunito Sans) fonts via `next/font` in `apps/web/app/layout.tsx`
+- [x] T013 Build the app shell: top brand bar, thumb-reachable bottom navigation (Home, Cakes, Cart, Me) and page transitions in `apps/web/components/shell/`
+- [x] T014 [P] Add `useReducedMotion`-aware motion helpers in `apps/web/components/motion/`
+- [x] T015 Define Drizzle schema for catalog (Cake, Size, OptionGroup, Option, CakeOptionGroup, Tag) in `packages/db/src/schema/catalog.ts`
+- [x] T016 [P] Define Drizzle schema for availability (BakerySettings, TimeSlot, DayAvailability, DeliveryZone, CapacityHold) in `packages/db/src/schema/availability.ts`
+- [x] T017 [P] Define Drizzle schema for orders, payments, discounts and uploads in `packages/db/src/schema/orders.ts` (user tables come from Better Auth in T047)
+- [x] T018 Generate the initial SQL migration in `packages/db/migrations/`
+- [x] T019 Create seed script with placeholder cakes, options, tags and time slots in `packages/db/src/seed.ts`
+- [x] T020 [P] Implement money formatting and minor-unit helpers in `packages/core/src/money.ts` with tests
+- [x] T021 [P] Implement bakery-time-zone date helpers in `packages/core/src/dates.ts` with tests
+- [x] T022 Implement zod schemas for catalog read models in `packages/core/src/schemas/catalog.ts`
+- [x] T023 Implement a catalog repository over Drizzle in `packages/db/src/repositories/catalog.ts`
+- [x] T024 [P] Add illustrated placeholder art for cakes without photos in `apps/web/components/cake/cake-art.tsx` and allow Cloudinary images in `apps/web/next.config.ts`
+- [x] T025 [P] Add API error helper and `/api/v1` route conventions in `apps/web/lib/api.ts`
+- [x] T026 [P] Add PWA manifest, icons and offline page in `apps/web/app/manifest.ts`, `apps/web/app/offline/`
 
 **Checkpoint**: Foundation ready; the app shell renders on phone and desktop with seeded data available
 
@@ -79,20 +79,21 @@ Monorepo: `apps/web/` (Next.js app), `packages/core/`, `packages/db/`, `packages
 
 ### Tests for User Story 1
 
-- [ ] T027 [P] [US1] Unit tests for filtering and earliest-date calculation in `packages/core/tests/catalog.test.ts`
-- [ ] T028 [P] [US1] Playwright journey (phone + desktop) for discovery in `apps/web/tests/e2e/discover.spec.ts`
+- [x] T027 [P] [US1] Unit tests for filtering and earliest-date calculation in `packages/core/tests/catalog.test.ts`
+- [x] T028 [P] [US1] Playwright journey (phone + desktop) for discovery in `apps/web/tests/e2e/discover.spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T029 [P] [US1] Implement catalog filtering and earliest-available-date logic in `packages/core/src/catalog/`
-- [ ] T030 [US1] Implement `GET /api/v1/home`, `/cakes`, `/cakes/{slug}`, `/tags` in `apps/web/app/api/v1/`
-- [ ] T031 [US1] Build story-led home page (hero, baker's story, occasion entry points, featured cakes) in `apps/web/app/(store)/page.tsx`
-- [ ] T032 [US1] Build browse page with swipeable visual cake cards and filter chips (occasion, flavour, dietary) in `apps/web/app/(store)/cakes/page.tsx`
-- [ ] T033 [US1] Build cake detail with gallery, story, sizes, tags, starting price and earliest date in `apps/web/app/(store)/cakes/[slug]/page.tsx`
-- [ ] T034 [US1] Show "Back soon" state for paused cakes and friendly empty state for no filter matches
-- [ ] T035 [US1] Add delight moments: hero entrance, card hover/tilt, shared-element card → detail transition (reduced-motion safe)
+- [x] T029 [P] [US1] Implement catalog filtering and earliest-available-date logic in `packages/core/src/catalog/`
+- [x] T030 [US1] Implement `GET /api/v1/home`, `/cakes`, `/cakes/{slug}`, `/tags` in `apps/web/app/api/v1/`
+- [x] T031 [US1] Build story-led home page (hero, baker's story, occasion entry points, featured cakes) in `apps/web/app/(store)/page.tsx`
+- [x] T032 [US1] Build browse page with swipeable visual cake cards and filter chips (occasion, flavour, dietary) in `apps/web/app/(store)/cakes/page.tsx`
+- [x] T033 [US1] Build cake detail with gallery, story, sizes, tags, starting price and earliest date in `apps/web/app/(store)/cakes/[slug]/page.tsx`
+- [x] T034 [US1] Show "Back soon" state for paused cakes and friendly empty state for no filter matches
+- [x] T035 [US1] Add delight moments: hero entrance, card hover/tilt, shared-element card → detail transition (reduced-motion safe)
 
-**Checkpoint**: Storefront is browsable end to end
+**Checkpoint**: Storefront is browsable end to end. ✅ Delivered 2026-10-20; ordering points customers
+to Instagram until US2/US3 land.
 
 ---
 
@@ -135,9 +136,9 @@ Monorepo: `apps/web/` (Next.js app), `packages/core/`, `packages/db/`, `packages
 ### Implementation for User Story 5
 
 - [ ] T047 [US5] Configure Better Auth with email OTP and staff/owner roles in `apps/web/lib/auth.ts`
-- [ ] T048 [US5] Protect `/admin` and `/api/v1/admin/*` by role in `apps/web/middleware.ts`
+- [ ] T048 [US5] Protect `/admin` and `/api/v1/admin/*` by role in `apps/web/proxy.ts` (Next.js 16 name for middleware)
 - [ ] T049 [P] [US5] Implement order state machine and status-event recording in `packages/core/src/orders/state.ts`
-- [ ] T050 [US5] Implement admin cake, option-group and photo-upload endpoints
+- [ ] T050 [US5] Implement admin cake, option-group and photo-upload endpoints (signed Cloudinary uploads)
 - [ ] T051 [US5] Implement admin settings, availability, time-slot and delivery-zone endpoints
 - [ ] T052 [US5] Implement admin orders list/detail/transition/cancel endpoints
 - [ ] T053 [US5] Build orders board grouped by date and status in `apps/web/app/(admin)/admin/page.tsx`

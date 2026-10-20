@@ -1,0 +1,11 @@
+.specify/
+.claude/
+specs/
+pnpm-lock.yaml
+**/.next/
+**/migrations/
+*.md
+**/next-env.d.ts
+**/node_modules/
+**/playwright-report/
+**/test-results/

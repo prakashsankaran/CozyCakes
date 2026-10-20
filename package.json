@@ -1,0 +1,26 @@
+{
+  "name": "cozycakes",
+  "private": true,
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "turbo run dev --filter=web",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "pnpm --filter web test:e2e",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @cozycakes/db db:generate",
+    "db:migrate": "pnpm --filter @cozycakes/db db:migrate",
+    "db:seed": "pnpm --filter @cozycakes/db db:seed"
+  },
+  "devDependencies": {
+    "prettier": "^3",
+    "turbo": "^2",
+    "typescript": "^5"
+  }
+}

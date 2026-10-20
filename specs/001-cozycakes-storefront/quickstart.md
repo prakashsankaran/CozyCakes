@@ -17,8 +17,9 @@ This guide proves the feature works end to end once implemented. Commands assume
 
 ```bash
 pnpm install
+export DATABASE_URL=postgres://...   # db scripts read it from the environment
 pnpm db:migrate        # apply migrations
-pnpm db:seed           # placeholder cakes, options, slots, zones, one owner account
+pnpm db:seed           # placeholder cakes, options, tags, slots (zones and owner account arrive with US3/US5)
 pnpm dev               # http://localhost:3000
 ```
 
@@ -30,7 +31,8 @@ Expose the webhook locally (e.g., a tunnel) and point the Razorpay test webhook 
 ```bash
 pnpm lint && pnpm typecheck
 pnpm test              # Vitest: pricing, lead time, capacity, state machine, webhook idempotency
-pnpm test:e2e          # Playwright: phone + desktop projects, includes axe checks
+pnpm --filter web build && pnpm test:e2e   # Playwright: phone + desktop, includes axe checks
+                       # (set PLAYWRIGHT_CHROMIUM_PATH to use a preinstalled Chromium)
 pnpm lhci              # Lighthouse budgets: LCP ≤ 2.5s, INP ≤ 200ms, CLS ≤ 0.1
 ```
 

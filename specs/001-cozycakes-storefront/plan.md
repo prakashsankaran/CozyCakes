@@ -21,8 +21,10 @@ payments (behind an interface), Cloudinary serves images, and Resend sends email
 
 **Language/Version**: TypeScript (strict) on Node.js LTS
 
-**Primary Dependencies**: Next.js (App Router), React, Tailwind CSS, Radix UI primitives, Motion,
-zod, Drizzle ORM, Better Auth, Razorpay SDK, Cloudinary, Resend + React Email, Serwist (PWA)
+**Primary Dependencies**: Next.js 16 (App Router, Cache Components), React 19, Tailwind CSS v4,
+Radix UI primitives, CSS animations + React `<ViewTransition>` (Motion only if US2 needs it), zod,
+Drizzle ORM + postgres.js, Better Auth, Razorpay SDK, Cloudinary, Resend + React Email, a
+hand-written service worker (PWA)
 
 **Storage**: Managed PostgreSQL (Neon or Supabase); Cloudinary for images and reference uploads
 
@@ -87,13 +89,15 @@ apps/
     │   │   ├── cakes/            # Browse + cake detail + builder
     │   │   ├── checkout/         # Fulfilment, date/slot, details, pay
     │   │   ├── orders/[token]/   # Private tracking page
-    │   │   └── me/               # Account, orders, favourites, addresses
+    │   │   ├── cart/             # Sheet cart (placeholder page until US2)
+│   │   └── me/               # Account, orders, favourites, addresses
     │   ├── (admin)/admin/        # Back office: orders board, cakes, availability, settings
     │   ├── api/v1/               # REST handlers (thin; call packages/core services)
     │   ├── api/webhooks/razorpay/
     │   └── offline/              # PWA offline page
     ├── components/               # Brand UI: sheets, cards, builder steps, delight effects
-    ├── lib/                      # Auth, image loader, analytics wiring
+    ├── lib/                      # Catalog access, API helpers, auth, image loader
+    ├── proxy.ts                  # Next.js 16 request proxy (formerly middleware): admin guard
     └── tests/
         ├── e2e/                  # Playwright (phone + desktop projects)
         └── a11y/
