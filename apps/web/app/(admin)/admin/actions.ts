@@ -9,11 +9,14 @@ import {
   CakeInputSchema,
   CakeStatusSchema,
   DayAvailabilityInputSchema,
+  DeliveryZoneInputSchema,
   OptionGroupInputSchema,
+  PostalCodeSchema,
   type BakerySettingsInput,
   type CakeInput,
   type CakeStatus,
   type DayAvailabilityInput,
+  type DeliveryZoneInput,
   type OptionGroupInput,
 } from "@cozycakes/core";
 import { AdminInputError, adminRepository, getDb } from "@cozycakes/db";
@@ -167,5 +170,21 @@ export async function saveDay(input: DayAvailabilityInput): Promise<ActionResult
 export async function clearDay(date: string): Promise<ActionResult> {
   await requireOwner();
   await repo().clearDays([DayAvailabilityInputSchema.shape.date.parse(date)]);
+  return { ok: true };
+}
+
+export async function saveZone(input: DeliveryZoneInput): Promise<ActionResult> {
+  await requireOwner();
+  try {
+    await repo().saveZone(DeliveryZoneInputSchema.parse(input));
+  } catch (error) {
+    return failure(error);
+  }
+  return { ok: true };
+}
+
+export async function deleteZone(postalCode: string): Promise<ActionResult> {
+  await requireOwner();
+  await repo().deleteZone(PostalCodeSchema.parse(postalCode));
   return { ok: true };
 }

@@ -4,26 +4,32 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import {
   formatCalendarDate,
+  formatMoney,
+  rupeesToPaise,
   type BakerySettingsInput,
   type DayAvailabilityInput,
+  type DeliveryZoneInput,
 } from "@cozycakes/core";
-import { clearDay, saveDay, saveSettings } from "@/app/(admin)/admin/actions";
+import { clearDay, deleteZone, saveDay, saveSettings, saveZone } from "@/app/(admin)/admin/actions";
 import { Card, buttonClass, inputClass } from "./ui";
 
-/** Capacity, days off and pickup details (FR-022, tasks T055). */
+/** Capacity, days off, pickup details and delivery area (FR-012, FR-022, tasks T055). */
 export function DatesEditor({
   settings,
   days,
+  zones,
   today,
 }: {
   settings: BakerySettingsInput;
   days: DayAvailabilityInput[];
+  zones: DeliveryZoneInput[];
   today: string;
 }) {
   return (
     <div className="mt-6 grid gap-5 md:grid-cols-2">
       <SettingsForm settings={settings} />
       <DaysForm days={days} today={today} defaultCapacity={settings.defaultDailyCapacity} />
+      <ZonesForm zones={zones} />
     </div>
   );
 }
@@ -251,6 +257,105 @@ function DaysForm({
                 className={buttonClass.quiet}
               >
                 Remove<span className="sr-only"> {formatCalendarDate(d.date)}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
+/** PIN codes the baker delivers to, each with its fee (FR-012, research.md §11). */
+function ZonesForm({ zones }: { zones: DeliveryZoneInput[] }) {
+  const router = useRouter();
+  const [postalCode, setPostalCode] = useState("");
+  const [fee, setFee] = useState("");
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pending, start] = useTransition();
+
+  return (
+    <Card>
+      <h2 className="font-display text-xl font-semibold">Delivery area</h2>
+      <p className="mt-1 text-sm text-cocoa-700">
+        Customers can choose delivery only to these PIN codes. Pickup is always offered.
+      </p>
+      <form
+        aria-label="Add a delivery PIN code"
+        className="mt-3 flex flex-wrap items-end gap-3"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const paise = rupeesToPaise(fee || "0");
+          if (paise === null) {
+            setMessage({ ok: false, text: "Enter the fee in rupees" });
+            return;
+          }
+          start(async () => {
+            const result = await saveZone({ postalCode, fee: paise, active: true });
+            if (result.ok) {
+              setMessage({ ok: true, text: `Delivering to ${postalCode}` });
+              setPostalCode("");
+              setFee("");
+              router.refresh();
+            } else setMessage({ ok: false, text: result.errors[0]! });
+          });
+        }}
+      >
+        <div>
+          <label htmlFor="zone-pin" className="font-bold">
+            PIN code
+          </label>
+          <input
+            id="zone-pin"
+            inputMode="numeric"
+            maxLength={6}
+            required
+            value={postalCode}
+            onChange={(e) => setPostalCode(e.target.value.replace(/\D/g, ""))}
+            className={`${inputClass} w-32 tracking-widest`}
+          />
+        </div>
+        <div>
+          <label htmlFor="zone-fee" className="font-bold">
+            Fee (₹)
+          </label>
+          <input
+            id="zone-fee"
+            inputMode="decimal"
+            value={fee}
+            onChange={(e) => setFee(e.target.value)}
+            placeholder="0"
+            className={`${inputClass} w-24`}
+          />
+        </div>
+        <button type="submit" disabled={pending} className={buttonClass.primary}>
+          Add
+        </button>
+      </form>
+      <Status message={message} />
+      {zones.length === 0 ? (
+        <p className="mt-4 text-cocoa-700">No delivery yet: customers will pick their cakes up.</p>
+      ) : (
+        <ul className="mt-4 flex flex-wrap gap-2">
+          {zones.map((z) => (
+            <li
+              key={z.postalCode}
+              className="flex items-center gap-1 rounded-[var(--radius-pill)] bg-cream-100 py-1 pl-3"
+            >
+              <span className="font-bold tracking-wider">{z.postalCode}</span>
+              <span className="text-sm text-cocoa-700">{z.fee ? formatMoney(z.fee) : "free"}</span>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() =>
+                  start(async () => {
+                    await deleteZone(z.postalCode);
+                    router.refresh();
+                  })
+                }
+                className={buttonClass.quiet}
+              >
+                Remove<span className="sr-only"> {z.postalCode}</span>
               </button>
             </li>
           ))}

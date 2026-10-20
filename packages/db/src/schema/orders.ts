@@ -1,9 +1,11 @@
 import {
   boolean,
   date,
+  index,
   integer,
   jsonb,
   pgEnum,
+  pgSequence,
   pgTable,
   text,
   timestamp,
@@ -74,6 +76,9 @@ export const discountCodes = pgTable(
   (t) => [uniqueIndex("discount_codes_code_ci").on(sql`lower(${t.code})`)],
 );
 
+/** Human-friendly order numbers: CC-24001, CC-24002, … */
+export const orderNumberSeq = pgSequence("order_number_seq", { startWith: 24001 });
+
 export const checkouts = pgTable("checkouts", {
   id: id(),
   /** Priced cart, fulfilment and contact snapshot taken when payment starts. */
@@ -85,30 +90,36 @@ export const checkouts = pgTable("checkouts", {
   ...timestamps,
 });
 
-export const orders = pgTable("orders", {
-  id: id(),
-  number: text("number").notNull().unique(),
-  trackingToken: text("tracking_token").notNull().unique(),
-  checkoutId: uuid("checkout_id")
-    .notNull()
-    .unique()
-    .references(() => checkouts.id),
-  userId: text("user_id"),
-  contact: jsonb("contact").$type<Contact>().notNull(),
-  fulfilment: fulfilmentMethod("fulfilment").notNull(),
-  date: date("date").notNull(),
-  slotId: uuid("slot_id").references(() => timeSlots.id),
-  address: jsonb("address").$type<AddressSnapshot>(),
-  noteToBaker: text("note_to_baker").notNull().default(""),
-  subtotal: integer("subtotal").notNull(),
-  deliveryFee: integer("delivery_fee").notNull().default(0),
-  discount: integer("discount").notNull().default(0),
-  total: integer("total").notNull(),
-  discountCodeId: uuid("discount_code_id").references(() => discountCodes.id),
-  status: orderStatus("status").notNull().default("confirmed"),
-  cancelReason: text("cancel_reason"),
-  ...timestamps,
-});
+export const orders = pgTable(
+  "orders",
+  {
+    id: id(),
+    number: text("number").notNull().unique(),
+    trackingToken: text("tracking_token").notNull().unique(),
+    checkoutId: uuid("checkout_id")
+      .notNull()
+      .unique()
+      .references(() => checkouts.id),
+    userId: text("user_id"),
+    contact: jsonb("contact").$type<Contact>().notNull(),
+    fulfilment: fulfilmentMethod("fulfilment").notNull(),
+    date: date("date").notNull(),
+    slotId: uuid("slot_id").references(() => timeSlots.id),
+    /** Slot as the customer saw it, so renaming a slot never rewrites past orders. */
+    slotLabel: text("slot_label").notNull().default(""),
+    address: jsonb("address").$type<AddressSnapshot>(),
+    noteToBaker: text("note_to_baker").notNull().default(""),
+    subtotal: integer("subtotal").notNull(),
+    deliveryFee: integer("delivery_fee").notNull().default(0),
+    discount: integer("discount").notNull().default(0),
+    total: integer("total").notNull(),
+    discountCodeId: uuid("discount_code_id").references(() => discountCodes.id),
+    status: orderStatus("status").notNull().default("confirmed"),
+    cancelReason: text("cancel_reason"),
+    ...timestamps,
+  },
+  (t) => [index("orders_date_idx").on(t.date)],
+);
 
 export const orderItems = pgTable("order_items", {
   id: id(),

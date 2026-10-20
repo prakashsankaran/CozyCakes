@@ -1,6 +1,7 @@
 import {
   boolean,
   date,
+  index,
   integer,
   pgEnum,
   pgTable,
@@ -54,11 +55,15 @@ export const deliveryZones = pgTable("delivery_zones", {
   ...timestamps,
 });
 
-export const capacityHolds = pgTable("capacity_holds", {
-  id: id(),
-  date: date("date").notNull(),
-  checkoutId: uuid("checkout_id").notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  convertedAt: timestamp("converted_at", { withTimezone: true }),
-  ...timestamps,
-});
+export const capacityHolds = pgTable(
+  "capacity_holds",
+  {
+    id: id(),
+    date: date("date").notNull(),
+    checkoutId: uuid("checkout_id").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    convertedAt: timestamp("converted_at", { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [index("capacity_holds_date_idx").on(t.date)],
+);

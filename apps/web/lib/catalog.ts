@@ -11,6 +11,7 @@ import {
   type CakeFilter,
   type CartItem,
   type CartQuote,
+  type OrderLineSnapshot,
   type Home,
   type Tag,
 } from "@cozycakes/core";
@@ -67,6 +68,41 @@ export async function quoteCartItems(items: CartItem[]): Promise<CartQuote> {
     },
     ctx,
   );
+}
+
+/**
+ * Prices a cart for an order: the quote plus each line frozen with its option prices, as copied
+ * onto the order (data-model.md "OrderItem").
+ */
+export async function priceCartForOrder(
+  items: CartItem[],
+): Promise<{ quote: CartQuote; lines: OrderLineSnapshot[] }> {
+  const { cakes, ctx } = await catalog();
+  const details = new Map(cakes.map((c) => [c.id, toCakeDetail(c, ctx)]));
+  const quote = quoteCart(items, (id) => details.get(id) ?? null, ctx);
+  const lines = items.flatMap((item): OrderLineSnapshot[] => {
+    const line = quote.lines.find((l) => l.itemId === item.id);
+    const cake = details.get(item.cakeId);
+    if (!line || line.status !== "ok" || !cake) return [];
+    const options = cake.optionGroups
+      .flatMap((g) => g.options)
+      .filter((o) => item.optionIds.includes(o.id))
+      .map((o) => ({ name: o.name, priceDelta: o.priceDelta }));
+    return [
+      {
+        cakeId: cake.id,
+        cakeName: cake.name,
+        sizeLabel: line.sizeLabel ?? "",
+        options,
+        message: item.message,
+        referencePhotoUrl: item.referencePhoto?.url ?? null,
+        unitPrice: line.unitPrice,
+        quantity: line.quantity,
+        lineTotal: line.lineTotal,
+      },
+    ];
+  });
+  return { quote, lines };
 }
 
 export async function listTags(): Promise<Tag[]> {

@@ -5,6 +5,7 @@ import { adminRepository, getDb } from "@cozycakes/db";
 import { Card, LoadingCards, PageTitle, buttonClass } from "@/components/admin/ui";
 import { requireOwner } from "@/lib/admin/dal";
 import { emailConfigured } from "@/lib/email";
+import { checkoutEnabled } from "@/lib/checkout/payments";
 import { uploadsEnabled } from "@/lib/uploads";
 
 export default function KitchenHome() {
@@ -31,7 +32,7 @@ async function Overview() {
   const setup = [
     { label: "Sign-in emails", done: emailConfigured(), hint: "RESEND_API_KEY" },
     { label: "Cake photo uploads", done: uploadsEnabled(), hint: "CLOUDINARY_URL" },
-    { label: "Online payments", done: false, hint: "arrives with checkout" },
+    { label: "Online payments", done: checkoutEnabled(), hint: "RAZORPAY_KEY_ID and _SECRET" },
   ];
 
   return (
@@ -70,8 +71,9 @@ async function Overview() {
       <Card>
         <h2 className="font-display text-2xl font-semibold">Orders</h2>
         <p className="mt-2 text-cocoa-700">
-          The order board arrives with online checkout. Until then, customers send their cart to you
-          on Instagram.
+          {checkoutEnabled()
+            ? "Every new order is emailed to you. An order board here comes next."
+            : "Customers send their cart to you on Instagram until online payments are switched on."}
         </p>
       </Card>
 
