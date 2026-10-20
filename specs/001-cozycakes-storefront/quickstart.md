@@ -17,7 +17,8 @@ This guide proves the feature works end to end once implemented. Commands assume
 
 ```bash
 pnpm install
-export DATABASE_URL=postgres://...   # db scripts read it from the environment
+docker compose up -d                 # optional: local Postgres on port 5432
+export DATABASE_URL=postgres://cozy:cozy@localhost:5432/cozycakes   # db scripts read it from the environment
 pnpm db:migrate        # apply migrations
 pnpm db:seed           # placeholder cakes, options, tags, slots (zones and owner account arrive with US3/US5)
 pnpm dev               # http://localhost:3000
@@ -25,6 +26,14 @@ pnpm dev               # http://localhost:3000
 
 Expose the webhook locally (e.g., a tunnel) and point the Razorpay test webhook at
 `/api/webhooks/razorpay`.
+
+## Deployment (Vercel)
+
+1. Import the GitHub repo in Vercel with root directory `apps/web` (done 2026-10-20).
+2. In the Vercel project, Storage → Create Database → Neon (Postgres), connected to all
+   environments. This sets `DATABASE_URL`.
+3. Redeploy. `apps/web/vercel.json` runs `scripts/vercel-build.sh`, which applies migrations and
+   seeds the sample menu into an empty catalog before building. Every PR gets a preview URL.
 
 ## Automated checks
 

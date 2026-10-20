@@ -145,6 +145,15 @@ latest stable releases at implementation time unless a task says otherwise.
   plan is for non-commercial use, so production should be on the Pro plan or an equivalent host
   (e.g., Netlify or Cloudflare); database, Cloudinary, and Resend start on free tiers.
 - **Rationale**: Zero-ops, preview links let the owner review UI changes from a phone.
+- **Update 2026-10-20 (deployment)**: The owner connected the repo to Vercel (root directory
+  `apps/web`). The database is Neon Postgres created from Vercel's Storage tab, which injects
+  `DATABASE_URL` without anyone handling the secret. `apps/web/vercel.json` runs
+  `scripts/vercel-build.sh`: apply migrations, seed the sample menu only if the catalog is empty
+  (`db:seed --if-empty`, never overwrites data), then `next build`.
+- **Docker**: Postgres in Docker is for local development only (`docker-compose.yml`); Vercel cannot
+  run or reach a container, so it is not an option for the hosted site.
+- **Known trade-off**: preview deployments share the production database for now. Before real orders
+  exist (US3), give previews a separate Neon branch so PR migrations cannot touch live data.
 
 ## 16. Time zone
 

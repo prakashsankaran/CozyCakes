@@ -27,14 +27,21 @@ Requires Node.js 22+, pnpm 10 and PostgreSQL 16.
 
 ```bash
 pnpm install
+docker compose up -d                               # local Postgres (or use your own)
 cp apps/web/.env.example apps/web/.env.local       # then set DATABASE_URL
-export DATABASE_URL=postgres://user:pass@localhost:5432/cozycakes
+export DATABASE_URL=postgres://cozy:cozy@localhost:5432/cozycakes
 pnpm db:migrate && pnpm db:seed                    # schema + placeholder menu
 pnpm dev                                           # http://localhost:3000
 ```
 
 Checks: `pnpm format:check`, `pnpm lint`, `pnpm typecheck`, `pnpm test` (unit), and
 `pnpm --filter web build && pnpm test:e2e` (Playwright + axe, needs the seeded database).
+
+## Hosting
+
+Deployed on Vercel (root directory `apps/web`) with a Neon Postgres database from Vercel's Storage
+tab. Each deploy applies migrations and fills an empty catalog with the sample menu; see
+[quickstart.md](specs/001-cozycakes-storefront/quickstart.md#deployment-vercel).
 
 ## Repository layout
 

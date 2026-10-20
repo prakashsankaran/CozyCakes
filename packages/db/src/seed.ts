@@ -1,6 +1,9 @@
 /**
- * Development seed: placeholder menu until the baker's real cakes and photos arrive (tasks T019).
- * Wipes catalog and availability tables, so it refuses to run against production.
+ * Placeholder menu until the baker's real cakes and photos arrive (tasks T019).
+ *
+ * Default mode wipes catalog and availability tables, so it refuses to run against production.
+ * `--if-empty` only seeds a database with no cakes and never deletes anything that exists; deploys
+ * use it to give a fresh database the sample menu (tasks T081).
  */
 import { createDb } from "./client";
 import {
@@ -16,11 +19,18 @@ import {
 
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error("DATABASE_URL is not set");
-if (process.env.NODE_ENV === "production" && !process.argv.includes("--force")) {
-  throw new Error("Refusing to seed a production database (pass --force to override)");
+const ifEmpty = process.argv.includes("--if-empty");
+if (!ifEmpty && process.env.NODE_ENV === "production" && !process.argv.includes("--force")) {
+  throw new Error("Refusing to seed a production database (pass --force or --if-empty)");
 }
 
 const db = createDb(url);
+
+if (ifEmpty && (await db.$count(cakes)) > 0) {
+  await db.$client.end();
+  console.log("Catalog already has cakes; leaving it untouched");
+  process.exit(0);
+}
 const rupees = (r: number) => r * 100;
 
 const tagRows: (typeof tags.$inferInsert)[] = [
