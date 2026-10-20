@@ -1,0 +1,27 @@
+{
+  "name": "@cozycakes/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/migrate.ts",
+    "db:seed": "tsx src/seed.ts"
+  },
+  "dependencies": {
+    "@cozycakes/core": "workspace:*",
+    "drizzle-orm": "^0.44",
+    "postgres": "^3"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "drizzle-kit": "^0.31",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}
