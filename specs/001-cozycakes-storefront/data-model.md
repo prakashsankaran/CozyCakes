@@ -1,0 +1,182 @@
+# Data Model: CozyCakes Storefront
+
+**Feature**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md) | **Date**: 2026-10-20
+
+Conventions: ids are UUIDs; money is stored as integer minor units (paise) with a `currency`
+setting on the bakery; timestamps are UTC; fulfilment dates are calendar dates in the bakery time
+zone. All tables have `created_at` / `updated_at`.
+
+## Catalog
+
+### Cake
+
+| Field | Type | Rules |
+|-------|------|-------|
+| id | uuid | |
+| slug | text | unique, URL-safe |
+| name | text | 2–80 chars |
+| tagline | text | ≤ 120 chars, used on cards |
+| story | text | markdown, ≤ 2,000 chars |
+| photos | Photo[] | 1–10; first is cover; each has `url`, `alt` (required), `width`, `height` |
+| occasion_tags | text[] | from Tag list (e.g., birthday, anniversary, wedding, just-because) |
+| dietary_tags | text[] | e.g., eggless, contains-nuts |
+| lead_time_days | int | ≥ 0; default 2 |
+| status | enum | `draft` · `visible` · `paused` ("Back soon") · `archived` |
+| featured | bool | shown on home page |
+| sort_order | int | |
+
+### Size
+
+Belongs to Cake. `label` ("0.5 kg"), `serves` ("4–6"), `price` (minor units > 0), `sort_order`,
+`active`. A visible cake MUST have ≥ 1 active size.
+
+### OptionGroup / Option
+
+- **OptionGroup**: `name` (Flavour, Frosting, Dietary, Add-ons), `kind` (`single` | `multi`),
+  `required` (bool), `max_select` (multi only).
+- **Option**: belongs to group; `name`, `price_delta` (minor units, ≥ 0), `active`, optional
+  `swatch` (colour/image for the builder visual).
+- **CakeOptionGroup**: links a Cake to the groups (and subset of options) it offers.
+
+### Tag
+
+`slug`, `label`, `type` (`occasion` | `dietary` | `flavour`), `emoji` (optional), `sort_order`.
+
+## Cart (client-held, server-validated)
+
+The cart lives on the device (local storage) for guests and is mirrored to the account when signed
+in. It is never trusted: the server re-prices it on every quote.
+
+**CartItem**: `cake_id`, `size_id`, `option_ids[]`, `message` (≤ 40 chars), `reference_upload_id`
+(optional), `quantity` (1–5).
+
+## Availability
+
+### BakerySettings (singleton)
+
+`time_zone` (default `Asia/Kolkata`), `currency` (default `INR`), `default_daily_capacity` (int,
+default 3), `pickup_address`, `pickup_instructions`, `booking_window_days` (default 60),
+`hold_minutes` (default 15).
+
+### TimeSlot
+
+`label` ("10:00–12:00"), `start`, `end`, `fulfilment` (`delivery` | `pickup` | `both`), `active`.
+
+### DayAvailability
+
+One row per date that has an override or bookings: `date` (unique), `capacity_override` (nullable
+int), `blocked` (bool), `note`. Used as the lock row for capacity checks.
+
+### DeliveryZone
+
+`postal_code` (unique), `fee` (minor units), `active`.
+
+### CapacityHold
+
+`id`, `date`, `checkout_id`, `expires_at`. Counted against capacity until expired or converted.
+
+**Availability rules**
+
+- `earliest_date = today_in_bakery_tz + max(lead_time_days of cart items)`.
+- A date is **available** iff not blocked, within `booking_window_days`, and
+  `confirmed_orders(date) + active_holds(date) < (capacity_override ?? default_daily_capacity)`.
+- Hold creation and the capacity check run in one transaction with `DayAvailability` locked.
+
+## Customers & Staff
+
+### User
+
+`id`, `email` (unique), `name`, `phone`, `role` (`customer` | `staff` | `owner`), `email_verified`.
+
+### Address
+
+Belongs to User: `label`, `line1`, `line2`, `landmark`, `city`, `postal_code`, `contact_phone`.
+
+### Favourite
+
+`user_id`, `cake_id` (unique pair).
+
+## Orders & Payments
+
+### Checkout
+
+Short-lived record created when the customer starts paying: `id`, priced snapshot of the cart,
+fulfilment details, contact details, `hold_id`, `payment_provider_order_id`, `status`
+(`open` · `paid` · `expired` · `failed`), `expires_at`.
+
+### Order
+
+| Field | Type | Rules |
+|-------|------|-------|
+| id | uuid | |
+| number | text | human-friendly, unique, e.g., `CC-24017` |
+| tracking_token | text | unguessable (≥ 128-bit), used in the private tracking link |
+| user_id | uuid? | null for guests |
+| contact | {name, email, phone} | required |
+| fulfilment | enum | `delivery` · `pickup` |
+| date / slot_id | date / uuid | |
+| address | Address snapshot? | required for delivery |
+| note_to_baker | text | ≤ 500 chars |
+| subtotal, delivery_fee, discount, total | int | minor units; `total = subtotal + delivery_fee − discount` |
+| discount_code_id | uuid? | |
+| status | enum | see state machine |
+| cancel_reason | text? | required when cancelled |
+
+### OrderItem
+
+Snapshot at purchase time: `cake_id`, `cake_name`, `size_label`, `options` (name + price_delta
+list), `message`, `reference_photo_url`, `unit_price`, `quantity`, `line_total`.
+
+### OrderStatusEvent
+
+`order_id`, `from_status`, `to_status`, `actor_user_id` (null = system), `note`, `created_at`.
+Append-only (Principle IV).
+
+### Payment
+
+`order_id`/`checkout_id`, `provider` (`razorpay`), `provider_payment_id` (unique → idempotency),
+`amount`, `status` (`created` · `captured` · `failed` · `refunded` · `partially_refunded`),
+`raw_event` (json).
+
+### Refund
+
+`payment_id`, `amount`, `provider_refund_id`, `status`, `reason`.
+
+### DiscountCode
+
+`code` (unique, case-insensitive), `type` (`percent` | `fixed`), `value`, `min_subtotal`,
+`starts_at`, `ends_at`, `max_redemptions`, `redemptions`, `active`.
+
+### ReferenceUpload
+
+`id`, `url`, `bytes` (≤ 10 MB), `mime` (image/jpeg, png, webp, heic), `created_at`. Unattached
+uploads older than 7 days are deleted.
+
+## Order state machine
+
+```text
+             ┌──────────────────────── cancel (staff, with reason → refund) ───────────────┐
+             │                                                                             ▼
+Confirmed ──► Baking ──► Ready ──► Out for delivery ──► Delivered                      Cancelled
+                          │
+                          └──────► Ready for pickup ──► Collected
+```
+
+- Orders are created directly in `Confirmed` by the verified payment webhook (no unpaid orders).
+- `Ready → Out for delivery` only when `fulfilment = delivery`; `Ready → Ready for pickup` only
+  when `fulfilment = pickup`.
+- `Cancelled` is reachable from any non-final state; `Delivered`, `Collected`, `Cancelled` are
+  final.
+- Every transition writes an `OrderStatusEvent`; transitions to Ready, Out for delivery, Ready for
+  pickup, Delivered, Collected, and Cancelled notify the customer (FR-019).
+
+## Pricing rule
+
+```text
+unit_price = size.price + Σ selected option.price_delta
+subtotal   = Σ unit_price × quantity
+discount   = percent: floor(subtotal × value / 100) | fixed: min(value, subtotal)
+total      = subtotal + delivery_fee − discount
+```
+
+Computed only in `packages/core` on the server; the client shows a preview using the same function.
