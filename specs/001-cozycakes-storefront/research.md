@@ -199,6 +199,12 @@ latest stable releases at implementation time unless a task says otherwise.
   run or reach a container, so it is not an option for the hosted site.
 - **Known trade-off**: preview deployments share the production database for now. Before real orders
   exist (US3), give previews a separate Neon branch so PR migrations cannot touch live data.
+- **As built (2026-10-21)**: preview builds no longer migrate or seed unless the Preview environment
+  sets `PREVIEW_DATABASE=separate`, so only production deploys (after a merge) change the live
+  database's schema. A preview of a PR that adds a migration may show errors until then. The rest
+  is a setting, not code: turn on Neon's database branch per preview deployment in the Vercel
+  Storage settings, then set `PREVIEW_DATABASE=separate` for Preview. Live payment keys stay in
+  the Production environment only, so previews never take real money.
 
 ## 16. Time zone
 

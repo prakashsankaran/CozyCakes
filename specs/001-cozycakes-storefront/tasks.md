@@ -225,7 +225,7 @@ delivered with US6 accounts.
 - [ ] T079 Delight pass: copy voice review (XR-004), empty/error/loading states (XR-005)
 - [ ] T080 Run quickstart.md validation end to end
 - [x] T081 Deploy on Vercel: build script that migrates and loads the sample menu when it is missing or older than `SAMPLE_MENU_VERSION` (`apps/web/vercel.json`, `apps/web/scripts/vercel-build.sh`, `db:seed --if-outdated`) and a local Postgres `docker-compose.yml`
-- [ ] T082 Give preview deployments their own Neon database branch before US3 takes real orders (until then, add Razorpay keys to the Production environment only, so previews keep checkout switched off)
+- [ ] T082 Give preview deployments their own Neon database branch before US3 takes real orders (until then, add Razorpay keys to the Production environment only, so previews keep checkout switched off). Code part done 2026-10-21: preview builds leave the shared database alone unless `PREVIEW_DATABASE=separate`; what remains is the Vercel Storage setting, done in the setup sitting
 - [x] T089 Contact and policy pages (FR-031) with footer links and a line by the pay button; e2e in `apps/web/tests/e2e/info.spec.ts`
 - [ ] T090 Fill in the real business details in `apps/web/lib/site.ts` (`business`) and review the policy defaults with the owner before switching on live payments
 - [x] T083 When US5 lets the baker manage the real menu, retire `SAMPLE_MENU_VERSION` reloads so a deploy can never replace the baker's cakes (any back-office menu change sets `bakery_settings.sample_menu_version` to -1, and `db:seed --if-outdated` then leaves the catalog alone)
