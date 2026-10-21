@@ -113,6 +113,14 @@ latest stable releases at implementation time unless a task says otherwise.
   a secret derived from `DATABASE_URL` (already a server-only secret), so there is one less setting
   to manage. `proxy.ts` only redirects visitors without a session cookie; the role check runs on
   every back-office page and Server Action (`apps/web/lib/admin/dal.ts`).
+- **As built (US6, 2026-10-21)**: anyone can now sign in as a customer with the same codes; the
+  back-office sign-in still only emails the owner and staff, and every back-office page still
+  checks the role, so a customer session never reaches `/admin`. The web forms wait 30 seconds
+  before sending another code to the same address (Better Auth's own routes allow 3 a minute per
+  visitor). "Save my details" on an order page only ever sends its code to the order's email, shown
+  masked, so a leaked order link can't be used to take over someone's order history. Orders join an
+  account by verified email when the customer opens it, which also covers orders placed before the
+  account existed.
 
 ## 9. Images and uploads
 

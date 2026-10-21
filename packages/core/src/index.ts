@@ -10,3 +10,4 @@ export * from "./schemas/checkout";
 export * from "./payments";
 export * from "./orders";
 export * from "./discounts";
+export * from "./schemas/account";

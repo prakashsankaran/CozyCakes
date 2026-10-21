@@ -24,6 +24,8 @@ export const users = pgTable("users", {
   image: text("image"),
   /** `owner` is also granted to any address in `OWNER_EMAIL`, so the owner never gets locked out. */
   role: userRole("role").notNull().default("customer"),
+  /** Customer's mobile ("+91…"), saved from checkout to pre-fill the next one (US6). */
+  phone: text("phone").notNull().default(""),
   ...authTimestamps,
 });
 

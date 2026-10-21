@@ -9,7 +9,7 @@ import { sendEmail, signInCodeEmail } from "./email";
 /**
  * Better Auth with email one-time codes (research.md §8, tasks T047). The owner is whoever's
  * address is in `OWNER_EMAIL` (comma-separated); staff are users the owner marks as `staff`.
- * Until customer accounts arrive (US6), codes are only emailed to the owner and staff.
+ * Everyone else who signs in is a customer (US6).
  */
 
 export type StaffRole = "owner" | "staff";
@@ -26,7 +26,7 @@ export function staffRoleOf(user: { email: string; role?: string | null }): Staf
   return user.role === "owner" || user.role === "staff" ? user.role : null;
 }
 
-/** Whether `email` may receive a sign-in code (an owner address or an existing staff user). */
+/** Whether `email` may ask for a back-office sign-in code (an owner address or a staff user). */
 export async function mayRequestCode(email: string): Promise<boolean> {
   const normalized = email.trim().toLowerCase();
   if (ownerEmails().includes(normalized)) return true;
@@ -99,9 +99,11 @@ function createAuth() {
         expiresIn: 10 * 60,
         allowedAttempts: 5,
         storeOTP: "hashed",
+        // Anyone may sign in as a customer (US6). The back office decides separately who may ask
+        // for a code there (`mayRequestCode`), and a customer account never gets back-office
+        // access: that needs `OWNER_EMAIL` or the staff role. The HTTP endpoints are rate limited
+        // by the plugin; Server Actions throttle with `codeRecentlySent`.
         async sendVerificationOTP({ email, otp }) {
-          // Strangers get no email: until US6 only the owner and staff can sign in.
-          if (!(await mayRequestCode(email))) return;
           await sendEmail(signInCodeEmail(email, otp));
         },
       }),
@@ -116,4 +118,15 @@ let instance: ReturnType<typeof createAuth> | undefined;
 export function getAuth() {
   instance ??= createAuth();
   return instance;
+}
+
+/** True when a sign-in code went to `email` in the last 30 seconds, so we don't send another. */
+export async function codeRecentlySent(email: string): Promise<boolean> {
+  const since = new Date(Date.now() - 30_000);
+  const row = await getDb().query.verifications.findFirst({
+    where: (v, { and, eq, gt }) =>
+      and(eq(v.identifier, `sign-in-otp-${email.trim().toLowerCase()}`), gt(v.createdAt, since)),
+    columns: { id: true },
+  });
+  return Boolean(row);
 }

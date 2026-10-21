@@ -196,7 +196,7 @@ until the owner adds Razorpay keys; until then carts still go to Instagram.
 - [x] T070 [P] [US4] Playwright journey for tracking in `apps/web/tests/e2e/track.spec.ts` (pickup order moved to Collected, cancel with refund, tracking API privacy, board needs sign-in)
 
 **Checkpoint**: Customers follow their order. ✅ Delivered 2026-10-21; "My orders" (scenario 3)
-arrives with US6 accounts.
+delivered with US6 accounts.
 
 ---
 
@@ -206,10 +206,13 @@ arrives with US6 accounts.
 
 **Independent Test**: Sign in, save address and favourite, sign in on another device and see both
 
-- [ ] T071 [US6] Customer sign-in screens (email OTP) in `apps/web/app/(store)/me/`
-- [ ] T072 [US6] Implement `/me/orders`, `/reorder`, `/favourites`, `/addresses` endpoints
-- [ ] T073 [US6] Build "My orders", favourites and addresses screens; attach guest order on "Save my details"
-- [ ] T074 [P] [US6] Playwright journey for accounts in `apps/web/tests/e2e/accounts.spec.ts`
+- [x] T071 [US6] Customer sign-in screens (email OTP) in `apps/web/app/(store)/me/`, with a 30-second pause between codes to the same address
+- [x] T072 [US6] Implement `/me`, `/me/orders`, `/reorder`, `/favourites`, `/addresses` endpoints in `apps/web/app/api/v1/me/` over `accountsRepository` (`packages/db/src/repositories/accounts.ts`)
+- [x] T073 [US6] Build "My orders", favourites and addresses screens; attach guest order on "Save my details"; hearts on cake pages; checkout pre-fill and saved addresses
+- [x] T074 [P] [US6] Playwright journey for accounts in `apps/web/tests/e2e/accounts.spec.ts` (guest saves details then reorders, favourites and addresses, signed-out API and hearts)
+- [ ] T088 [US6] Attach an order to the signed-in account at checkout even when the customer types a different email (today orders join an account by matching email)
+
+**Checkpoint**: Repeat customers order faster. ✅ Delivered 2026-10-21 (sign-in needs email switched on).
 
 ---
 

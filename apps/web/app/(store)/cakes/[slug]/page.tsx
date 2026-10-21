@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { formatCalendarDate, formatMoney, type Tag } from "@cozycakes/core";
 import { CakeBuilder } from "@/components/builder/cake-builder";
+import { FavouriteButton } from "@/components/account/favourite-button";
 import { CakeVisual } from "@/components/cake/cake-visual";
 import { getCakeDetail, listTags, tagLabel } from "@/lib/catalog";
 import { site } from "@/lib/site";
@@ -37,13 +38,16 @@ async function CakeContent({ params }: { params: PageProps<"/cakes/[slug]">["par
 
   return (
     <article className="mt-6 grid gap-8 md:grid-cols-2 md:gap-12">
-      <div className="md:sticky md:top-24 md:self-start">
+      <div className="relative md:sticky md:top-24 md:self-start">
         <CakeVisual
           cake={cake}
           priority
           sizes="(min-width: 768px) 50vw, 100vw"
           className="aspect-square rounded-[var(--radius-lg)] shadow-[var(--shadow-lifted)]"
         />
+        <div className="absolute right-3 top-3">
+          <FavouriteButton cakeId={cake.id} cakeName={cake.name} slug={cake.slug} />
+        </div>
       </div>
 
       <div className="min-w-0 pb-8">

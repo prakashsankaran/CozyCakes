@@ -6,3 +6,4 @@ export * from "./repositories/admin";
 export * from "./repositories/checkout";
 export * from "./repositories/orders";
 export * from "./repositories/discounts";
+export * from "./repositories/accounts";

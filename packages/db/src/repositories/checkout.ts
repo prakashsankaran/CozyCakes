@@ -58,6 +58,9 @@ export type OrderView = {
   date: string;
   slotLabel: string;
   contactName: string;
+  /** For the server only (sending codes, saving details): never shown on the shared order page. */
+  contactEmail: string;
+  contactPhone: string;
   address: typeof orders.$inferSelect.address;
   noteToBaker: string;
   subtotal: number;
@@ -414,6 +417,8 @@ export function checkoutRepository(db: Database) {
         date: order.date,
         slotLabel: order.slotLabel,
         contactName: order.contact.name,
+        contactEmail: order.contact.email,
+        contactPhone: order.contact.phone,
         address: order.address,
         noteToBaker: order.noteToBaker,
         subtotal: order.subtotal,
