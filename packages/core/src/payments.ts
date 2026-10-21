@@ -7,6 +7,7 @@
  */
 
 export type ProviderOrder = { orderId: string };
+export type ProviderRefund = { refundId: string; status: string };
 
 export interface PaymentProvider {
   readonly name: "razorpay" | "test";
@@ -21,6 +22,12 @@ export interface PaymentProvider {
   verifyPayment(input: { orderId: string; paymentId: string; signature: string }): Promise<boolean>;
   /** Checks a webhook body against its signature header. */
   verifyWebhook(rawBody: string, signature: string): Promise<boolean>;
+  /** Returns `amount` of a captured payment to the customer (FR-024). */
+  refund(input: {
+    paymentId: string;
+    amount: number;
+    notes?: Record<string, string>;
+  }): Promise<ProviderRefund>;
 }
 
 const encoder = new TextEncoder();
@@ -87,6 +94,25 @@ export function razorpayProvider(config: {
       if (!config.webhookSecret) return false;
       return timingSafeEqual(await hmacSha256Hex(config.webhookSecret, rawBody), signature);
     },
+    async refund({ paymentId, amount, notes }) {
+      const res = await doFetch(
+        `https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}/refund`,
+        {
+          method: "POST",
+          headers: {
+            authorization: `Basic ${btoa(`${config.keyId}:${config.keySecret}`)}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ amount, speed: "normal", notes }),
+        },
+      );
+      if (!res.ok) {
+        throw new PaymentProviderError(`Razorpay refused the refund: ${res.status}`);
+      }
+      const body = (await res.json()) as { id?: string; status?: string };
+      if (!body.id) throw new PaymentProviderError("Razorpay returned no refund id");
+      return { refundId: body.id, status: body.status ?? "pending" };
+    },
   };
 }
 
@@ -105,6 +131,9 @@ export function testPaymentProvider(secret: string): PaymentProvider {
     },
     async verifyWebhook(rawBody, signature) {
       return timingSafeEqual(await hmacSha256Hex(secret, rawBody), signature);
+    },
+    async refund({ paymentId }) {
+      return { refundId: `test_refund_${paymentId}`, status: "processed" };
     },
   };
 }

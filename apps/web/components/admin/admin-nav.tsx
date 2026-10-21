@@ -6,6 +6,7 @@ import { Suspense } from "react";
 
 const links = [
   { href: "/admin", label: "Today" },
+  { href: "/admin/orders", label: "Orders" },
   { href: "/admin/menu", label: "Menu" },
   { href: "/admin/choices", label: "Choices" },
   { href: "/admin/dates", label: "Dates" },

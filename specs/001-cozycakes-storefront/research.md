@@ -80,6 +80,10 @@ latest stable releases at implementation time unless a task says otherwise.
   the same order idempotently in case the tab closes. Checkout is only switched on when
   `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are set. A test provider (`PAYMENT_PROVIDER=test`,
   refused on Vercel production) signs fake payments the same way for end-to-end tests.
+- **As built (US4, 2026-10-21)**: cancelling an order refunds the full payment through Razorpay's
+  refunds API (`POST /v1/payments/{id}/refund`, normal speed). The refund is attempted after the
+  cancellation is saved, so a refused refund never leaves a paid order stuck; the owner is told to
+  refund it from the Razorpay dashboard.
 
 ## 7. Preventing overbooking
 
@@ -135,6 +139,9 @@ latest stable releases at implementation time unless a task says otherwise.
   JSON files instead, for local development and end-to-end tests.
 - **As built (US3)**: order confirmation and new-order emails are plain HTML strings sent the same
   way; React Email templates and the `Notifier` seam come with WhatsApp/SMS.
+- **As built (US4)**: status updates (FR-019) are emails in the same style, each linking to the
+  private order page. That page also re-reads the order every minute while it is open, so it stays
+  current without push notifications.
 
 ## 11. Delivery area
 

@@ -3,6 +3,8 @@ import { expect, type Page } from "@playwright/test";
 
 /** WCAG 2.2 AA check (Constitution Principle V). */
 export async function expectAccessible(page: Page) {
+  // Next streams page metadata, so the <title> can land a moment after the content.
+  await expect(page).toHaveTitle(/\S/);
   // Let entrance animations settle so contrast is measured on final colours, not mid-fade.
   await page.evaluate(() =>
     Promise.all(

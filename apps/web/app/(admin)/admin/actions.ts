@@ -6,23 +6,32 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 import {
   BakerySettingsInputSchema,
+  CancelOrderInputSchema,
   CakeInputSchema,
   CakeStatusSchema,
   DayAvailabilityInputSchema,
   DeliveryZoneInputSchema,
+  MoveOrderInputSchema,
   OptionGroupInputSchema,
   PostalCodeSchema,
   type BakerySettingsInput,
   type CakeInput,
   type CakeStatus,
   type DayAvailabilityInput,
+  type CancelOrderInput,
   type DeliveryZoneInput,
+  type MoveOrderInput,
   type OptionGroupInput,
 } from "@cozycakes/core";
-import { AdminInputError, adminRepository, getDb } from "@cozycakes/db";
-import { requireOwner } from "@/lib/admin/dal";
+import { AdminInputError, OrderMoveError, adminRepository, getDb } from "@cozycakes/db";
+import { requireOwner, requireStaff } from "@/lib/admin/dal";
 import { getAuth, mayRequestCode } from "@/lib/auth";
 import { emailConfigured } from "@/lib/email";
+import {
+  cancelOrder as cancelPaidOrder,
+  moveOrder,
+  type RefundOutcome,
+} from "@/lib/orders/service";
 import { signCakePhotoUpload } from "@/lib/uploads";
 
 /**
@@ -38,6 +47,9 @@ const repo = () => adminRepository(getDb());
 function failure(error: unknown): { ok: false; errors: string[] } {
   if (error instanceof z.ZodError) return { ok: false, errors: error.issues.map((i) => i.message) };
   if (error instanceof AdminInputError) return { ok: false, errors: [error.message] };
+  if (error instanceof OrderMoveError) {
+    return { ok: false, errors: ["Someone already moved this order. Refresh to see where it is."] };
+  }
   throw error;
 }
 
@@ -187,4 +199,31 @@ export async function deleteZone(postalCode: string): Promise<ActionResult> {
   await requireOwner();
   await repo().deleteZone(PostalCodeSchema.parse(postalCode));
   return { ok: true };
+}
+
+// ---- Orders ----
+
+export async function advanceOrder(input: MoveOrderInput): Promise<ActionResult> {
+  const staff = await requireStaff();
+  try {
+    const { orderId, to } = MoveOrderInputSchema.parse(input);
+    await moveOrder({ orderId, to, actorUserId: staff.userId });
+  } catch (error) {
+    return failure(error);
+  }
+  return { ok: true };
+}
+
+/** Cancelling refunds the customer, so only the owner can do it (FR-020, FR-024). */
+export async function cancelOrder(
+  input: CancelOrderInput,
+): Promise<ActionResult<{ refund: RefundOutcome }>> {
+  const owner = await requireOwner();
+  try {
+    const { orderId, reason } = CancelOrderInputSchema.parse(input);
+    const { refund } = await cancelPaidOrder({ orderId, reason, actorUserId: owner.userId });
+    return { ok: true, data: { refund } };
+  } catch (error) {
+    return failure(error);
+  }
 }

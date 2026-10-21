@@ -64,6 +64,9 @@ export type OrderView = {
   discount: number;
   total: number;
   createdAt: Date;
+  cancelReason: string | null;
+  /** Each status reached, oldest first. */
+  timeline: Array<{ status: typeof orders.$inferSelect.status; at: Date }>;
   items: Array<{
     cakeName: string;
     sizeLabel: string;
@@ -382,11 +385,18 @@ export function checkoutRepository(db: Database) {
     async orderByTrackingToken(token: string): Promise<OrderView | null> {
       const [order] = await db.select().from(orders).where(eq(orders.trackingToken, token));
       if (!order) return null;
-      const items = await db
-        .select()
-        .from(orderItems)
-        .where(eq(orderItems.orderId, order.id))
-        .orderBy(asc(orderItems.cakeName));
+      const [items, events] = await Promise.all([
+        db
+          .select()
+          .from(orderItems)
+          .where(eq(orderItems.orderId, order.id))
+          .orderBy(asc(orderItems.cakeName)),
+        db
+          .select({ status: orderStatusEvents.toStatus, at: orderStatusEvents.createdAt })
+          .from(orderStatusEvents)
+          .where(eq(orderStatusEvents.orderId, order.id))
+          .orderBy(asc(orderStatusEvents.createdAt)),
+      ]);
       return {
         number: order.number,
         status: order.status,
@@ -401,6 +411,8 @@ export function checkoutRepository(db: Database) {
         discount: order.discount,
         total: order.total,
         createdAt: order.createdAt,
+        cancelReason: order.cancelReason,
+        timeline: events,
         items: items.map((i) => ({
           cakeName: i.cakeName,
           sizeLabel: i.sizeLabel,

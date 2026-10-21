@@ -190,6 +190,11 @@ Confirmed ──► Baking ──► Ready ──► Out for delivery ──► 
   final.
 - Every transition writes an `OrderStatusEvent`; transitions to Ready, Out for delivery, Ready for
   pickup, Delivered, Collected, and Cancelled notify the customer (FR-019).
+- Orders move one step forward at a time (no skipping); the move locks the order row, so two
+  people tapping at once can't both move it. Rules live in `packages/core/src/orders.ts`.
+- Cancelling frees the date's place (capacity counts non-cancelled orders) and refunds a captured
+  payment in full. A refund the provider refuses is stored with `provider_refund_id` null and
+  `status = failed`, and the payment stays `captured` so the owner knows to refund it by hand.
 
 ## Pricing rule
 
