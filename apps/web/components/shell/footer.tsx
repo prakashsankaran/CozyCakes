@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { INFO_PAGES } from "@/components/info/info-page";
 import { site } from "@/lib/site";
 import { LogoMark } from "./logo";
 
 export function Footer() {
   return (
     <footer className="mt-24 bg-cocoa-900 text-cream-100">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-32 pt-12 sm:grid-cols-[1.5fr_1fr] sm:px-6 sm:pb-12">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 pb-32 pt-12 sm:grid-cols-[1.5fr_1fr_1fr] sm:px-6 sm:pb-12">
         <div>
           <div className="flex items-center gap-3">
             <LogoMark className="h-10 w-10" />
@@ -25,6 +26,14 @@ export function Footer() {
             Browse all cakes
           </Link>
         </div>
+        <nav aria-label="Good to know" className="space-y-2">
+          <p className="font-bold text-cream-50">Good to know</p>
+          {INFO_PAGES.map((p) => (
+            <Link key={p.href} href={p.href} className="block underline-offset-4 hover:underline">
+              {p.label}
+            </Link>
+          ))}
+        </nav>
       </div>
     </footer>
   );

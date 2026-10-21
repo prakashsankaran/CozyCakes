@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import { buildCalendar, dayStatus, type AvailabilityRules } from "../src/availability";
 import {
   CheckoutRequestSchema,
+  TimeSlotInputSchema,
+  formatClockTime,
   normalizeIndianMobile,
   orderTotal,
+  slotLabel,
   type CheckoutRequest,
 } from "../src/schemas/checkout";
 import {
@@ -171,5 +174,23 @@ describe("payment signatures", () => {
     const { orderId } = await provider.createOrder({ amount: 1, currency: "INR", receipt: "c9" });
     const signature = await paymentSignature("test-secret", orderId, "pay_9");
     expect(await provider.verifyPayment({ orderId, paymentId: "pay_9", signature })).toBe(true);
+  });
+});
+
+describe("time slots (tasks T085)", () => {
+  it("labels times the way people say them", () => {
+    expect(formatClockTime("10:00")).toBe("10am");
+    expect(formatClockTime("12:00")).toBe("12pm");
+    expect(formatClockTime("00:30")).toBe("12:30am");
+    expect(slotLabel("16:00", "19:30")).toBe("4pm – 7:30pm");
+  });
+
+  it("needs the end after the start", () => {
+    expect(
+      TimeSlotInputSchema.safeParse({ start: "16:00", end: "12:00", fulfilment: "both" }).success,
+    ).toBe(false);
+    expect(
+      TimeSlotInputSchema.parse({ start: "09:00", end: "11:00", fulfilment: "pickup" }),
+    ).toEqual({ start: "09:00", end: "11:00", fulfilment: "pickup" });
   });
 });

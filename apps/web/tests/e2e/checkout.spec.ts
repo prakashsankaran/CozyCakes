@@ -45,6 +45,10 @@ test("pay as a guest for pickup and land on the celebration", async ({ page }, t
   await page.goto("/cart");
   await page.getByRole("link", { name: "Checkout" }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Checkout" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "refund policy" })).toHaveAttribute(
+    "href",
+    "/refunds",
+  );
 
   await page
     .locator("label")

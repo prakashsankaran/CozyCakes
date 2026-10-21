@@ -316,6 +316,14 @@ signing in isn't switched on yet.
   when there is no connection.
 - **FR-030**: All functionality used by the storefront MUST be available through a documented API
   so a future mobile app can reuse it.
+- **FR-031**: The shop MUST publish Contact, Delivery and pickup, Cancellations and refunds, Terms,
+  and Privacy pages, linked from every shop page's footer and from the pay button, before taking
+  live payments (Razorpay reviews them). As built (2026-10-21): `/contact`, `/delivery`,
+  `/refunds`, `/terms`, `/privacy`, written in the baker's voice. Business details (name, city,
+  address, email, phone, FSSAI number) come from `business` in `apps/web/lib/site.ts`; blank ones
+  are left out. Default policy: full refund when cancelled more than 48 hours before the date, none
+  within 48 hours (the baker tries to move the date instead), full refund when the baker cancels,
+  and problems reported with a photo within 2 hours of delivery or pickup.
 
 ### Experience Requirements
 

@@ -179,3 +179,29 @@ export const DeliveryZoneInputSchema = z.object({
   active: z.boolean(),
 });
 export type DeliveryZoneInput = z.infer<typeof DeliveryZoneInputSchema>;
+
+/** "16:00" → "4pm", "10:30" → "10:30am", "12:00" → "12pm". */
+export function formatClockTime(time: string): string {
+  const [h = 0, m = 0] = time.split(":").map(Number);
+  const hour = h % 12 || 12;
+  return `${hour}${m ? `:${String(m).padStart(2, "0")}` : ""}${h < 12 ? "am" : "pm"}`;
+}
+
+/** What customers see for a time slot, like "10am – 12pm". */
+export const slotLabel = (start: string, end: string) =>
+  `${formatClockTime(start)} – ${formatClockTime(end)}`;
+
+const ClockTimeSchema = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Pick a time");
+
+/** Back office: a pickup or delivery time customers can choose (tasks T085). */
+export const TimeSlotInputSchema = z
+  .object({
+    start: ClockTimeSchema,
+    end: ClockTimeSchema,
+    fulfilment: z.enum(["delivery", "pickup", "both"]),
+  })
+  .refine((s) => s.start < s.end, {
+    message: "The end time must be after the start time",
+    path: ["end"],
+  });
+export type TimeSlotInput = z.input<typeof TimeSlotInputSchema>;

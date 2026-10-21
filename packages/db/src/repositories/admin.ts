@@ -1,4 +1,5 @@
-import { and, asc, eq, gte, inArray, notInArray } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNotNull, ne, notInArray, or } from "drizzle-orm";
+import { slotLabel } from "@cozycakes/core";
 import type {
   BakerySettingsInput,
   CakeInput,
@@ -6,6 +7,8 @@ import type {
   DayAvailabilityInput,
   DeliveryZoneInput,
   OptionGroupInput,
+  TimeSlot,
+  TimeSlotInput,
   Photo,
   Tag,
 } from "@cozycakes/core";
@@ -20,10 +23,13 @@ import {
   options,
   sizes,
   tags,
+  timeSlots,
 } from "../schema";
 
 /** A friendly error the back office can show as-is. */
 export class AdminInputError extends Error {}
+
+export type AdminTimeSlot = TimeSlot & { start: string; end: string; active: boolean };
 
 export type AdminCakeSummary = {
   id: string;
@@ -331,7 +337,13 @@ export function adminRepository(db: Database) {
       const rows = await db
         .select()
         .from(dayAvailability)
-        .where(gte(dayAvailability.date, fromDate))
+        .where(
+          and(
+            gte(dayAvailability.date, fromDate),
+            // Checkout also adds a row per booked day to lock it; only the baker's changes show.
+            or(eq(dayAvailability.blocked, true), isNotNull(dayAvailability.capacityOverride)),
+          ),
+        )
         .orderBy(asc(dayAvailability.date));
       return rows.map((r) => ({
         date: r.date,
@@ -368,6 +380,56 @@ export function adminRepository(db: Database) {
 
     async deleteZone(postalCode: string): Promise<void> {
       await db.delete(deliveryZones).where(eq(deliveryZones.postalCode, postalCode));
+    },
+
+    /** Every pickup and delivery time, including ones the baker stopped offering. */
+    async listSlots(): Promise<AdminTimeSlot[]> {
+      const rows = await db.select().from(timeSlots).orderBy(asc(timeSlots.start));
+      return rows.map((s) => ({
+        id: s.id,
+        label: s.label,
+        fulfilment: s.fulfilment,
+        start: s.start.slice(0, 5),
+        end: s.end.slice(0, 5),
+        active: s.active,
+      }));
+    },
+
+    /**
+     * Adds a time. Times are never edited or deleted, so past orders keep pointing at the slot
+     * they were booked in; the baker stops offering one and adds another instead.
+     */
+    async addSlot(input: { start: string; end: string; fulfilment: TimeSlotInput["fulfilment"] }) {
+      const label = slotLabel(input.start, input.end);
+      const [clash] = await db
+        .select({ id: timeSlots.id })
+        .from(timeSlots)
+        .where(and(eq(timeSlots.label, label), eq(timeSlots.active, true)));
+      if (clash) throw new AdminInputError(`You already offer ${label}`);
+      await db.transaction(async (tx) => {
+        // The times are the baker's now, so deploys must not reload the sample menu over them.
+        await markMenuOwned(tx);
+        await tx.insert(timeSlots).values({ ...input, label });
+      });
+    },
+
+    async setSlotActive(id: string, active: boolean): Promise<void> {
+      await db.transaction(async (tx) => {
+        if (!active) {
+          const others = await tx
+            .select({ id: timeSlots.id })
+            .from(timeSlots)
+            .where(and(eq(timeSlots.active, true), ne(timeSlots.id, id)));
+          if (!others.length) {
+            throw new AdminInputError("Keep at least one time, or customers can't order");
+          }
+        }
+        await markMenuOwned(tx);
+        await tx
+          .update(timeSlots)
+          .set({ active, updatedAt: new Date() })
+          .where(eq(timeSlots.id, id));
+      });
     },
 
     async clearDays(dates: string[]): Promise<void> {
