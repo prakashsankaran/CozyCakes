@@ -26,3 +26,10 @@ export async function requireOwner(): Promise<StaffSession> {
   if (staff.role !== "owner") redirect("/admin/sign-in?denied=1");
   return staff;
 }
+
+/** Orders are for everyone in the kitchen: the owner and, later, staff (FR-020). */
+export async function requireStaff(): Promise<StaffSession> {
+  const staff = await currentStaff();
+  if (!staff) redirect("/admin/sign-in");
+  return staff;
+}

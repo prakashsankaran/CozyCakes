@@ -131,23 +131,24 @@ the cart copies an order summary and opens Instagram instead of checking out.
 
 ### Tests for User Story 5
 
-- [ ] T045 [P] [US5] Unit tests for the order state machine in `packages/core/tests/order-state.test.ts` *(moved: ships with US3 orders)*
+- [x] T045 [P] [US5] Unit tests for the order state machine in `packages/core/tests/order-state.test.ts` (built with T086, plus refund calls)
 - [x] T046 [P] [US5] Playwright journey for back office in `apps/web/tests/e2e/admin.spec.ts` (sign-in code read from a local outbox, new choice group, new cake shown in the shop and builder, archive, day off), plus input-schema unit tests in `packages/core/tests/admin.test.ts`
 
 ### Implementation for User Story 5
 
 - [x] T047 [US5] Configure Better Auth with email OTP and staff/owner roles in `apps/web/lib/auth.ts` (owner from `OWNER_EMAIL`; codes only emailed to the owner and staff; email in `apps/web/lib/email.ts`)
 - [x] T048 [US5] Protect `/admin` in `apps/web/proxy.ts` (Next.js 16 name for middleware) as a fast redirect, with the real role check in `apps/web/lib/admin/dal.ts` on every page and Server Action
-- [ ] T049 [P] [US5] Implement order state machine and status-event recording in `packages/core/src/orders/state.ts` *(moved: ships with US3 orders)*
+- [x] T049 [P] [US5] Implement order state machine in `packages/core/src/orders.ts` and status-event recording in `packages/db/src/repositories/orders.ts` (built with T086)
 - [x] T050 [US5] Implement admin cake, option-group and photo-upload writes (signed Cloudinary uploads) as Server Actions in `apps/web/app/(admin)/admin/actions.ts` over `packages/db/src/repositories/admin.ts`, validated with `packages/core/src/schemas/admin.ts`; the `/api/v1/admin/*` REST endpoints wait for the mobile app
 - [x] T051 [US5] Implement admin settings and day availability writes (same place as T050); time slots and delivery zones move to US3 with the checkout date picker
-- [ ] T052 [US5] Implement admin orders list/detail/transition/cancel endpoints *(moved: ships with US3 orders)*
-- [ ] T053 [US5] Build orders board grouped by date and status in `apps/web/app/(admin)/admin/page.tsx` *(moved: ships with US3 orders, together with optional staff logins)*
+- [x] T052 [US5] Implement admin orders list/detail/transition/cancel as Server Actions (`advanceOrder`, `cancelOrder`) over `ordersRepository`; REST endpoints wait for the mobile app (built with T086)
+- [x] T053 [US5] Build orders board grouped by date and status in `apps/web/app/(admin)/admin/(kitchen)/orders/` with an order detail screen (built with T086)
 - [x] T054 [US5] Build cake editor and menu list in `apps/web/app/(admin)/admin/(kitchen)/menu/` and builder choices editor in `.../choices/`
 - [x] T055 [US5] Build capacity, pickup and days-off screen in `apps/web/app/(admin)/admin/(kitchen)/dates/`
 
 **Checkpoint**: The baker controls menu and capacity. ✅ Menu, choices, photos, capacity and days off
-delivered 2026-10-20 with the site owner as the back-office owner; orders board follows with US3.
+delivered 2026-10-20 with the site owner as the back-office owner; orders board and statuses
+delivered 2026-10-21 with US4.
 
 ---
 
@@ -175,7 +176,8 @@ delivered 2026-10-20 with the site owner as the back-office owner; orders board 
 - [ ] T066 [US3] Implement discount codes in quote and checkout *(later: FR-017 is optional)*
 - [x] T084 [US3] Delivery area editor (PIN codes and fees) on the back office Dates screen (moved from T051)
 - [ ] T085 [US3] Time slot editor in the back office (the sample slots are used until then)
-- [ ] T086 [US3] Orders board and order statuses in the back office (T045, T049, T052, T053 moved here), with optional staff logins
+- [x] T086 [US3] Orders board and order statuses in the back office (T045, T049, T052, T053 moved here). Cancelling is owner-only and refunds an online payment in full; if the refund fails the order is still cancelled and the screen says to refund from the Razorpay dashboard
+- [ ] T087 [US5] Optional staff logins (orders board only) for the baker friend; the board and moves already accept the `staff` role
 
 **Checkpoint**: End-to-end paid orders work. ✅ Built 2026-10-20 and switched off on the live site
 until the owner adds Razorpay keys; until then carts still go to Instagram.
@@ -188,10 +190,13 @@ until the owner adds Razorpay keys; until then carts still go to Instagram.
 
 **Independent Test**: Advance an order in the back office; tracking page and emails reflect each change
 
-- [ ] T067 [US4] Implement `GET /api/v1/orders/track/{token}`
-- [ ] T068 [US4] Build tracking timeline page in `apps/web/app/(store)/orders/[token]/page.tsx`
-- [ ] T069 [US4] Send customer notifications on status transitions
-- [ ] T070 [P] [US4] Playwright journey for tracking in `apps/web/tests/e2e/track.spec.ts`
+- [x] T067 [US4] Implement `GET /api/v1/orders/track/{token}` (`TrackedOrderSchema`: first name, items, date, address or pickup point and timeline; never email or phone)
+- [x] T068 [US4] Build tracking timeline page in `apps/web/app/(store)/orders/[token]/page.tsx` (headline in the baker's voice per status; refreshes itself every minute until the order is finished)
+- [x] T069 [US4] Send customer notifications on status transitions (email for Ready, Out for delivery, Ready to collect, Delivered, Collected and Cancelled, in `apps/web/lib/checkout/notify.ts`)
+- [x] T070 [P] [US4] Playwright journey for tracking in `apps/web/tests/e2e/track.spec.ts` (pickup order moved to Collected, cancel with refund, tracking API privacy, board needs sign-in)
+
+**Checkpoint**: Customers follow their order. ✅ Delivered 2026-10-21; "My orders" (scenario 3)
+arrives with US6 accounts.
 
 ---
 

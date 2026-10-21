@@ -145,6 +145,11 @@ customer's tracking page and notifications reflect each change.
 3. **Given** a signed-in customer, **When** they open "My orders", **Then** they see current and
    past orders and can re-order a past cake in one tap.
 
+**As built (2026-10-21)**: scenarios 1 and 2 work; scenario 3 arrives with US6 accounts. The baker
+moves orders one step at a time from the back office orders board; the customer's page updates on
+its own and they get an email from Ready onwards. Like checkout, this only matters once online
+payments are switched on.
+
 ---
 
 ### User Story 5 - Baker manages menu, availability, and orders (Priority: P1)

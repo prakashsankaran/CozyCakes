@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { formatCalendarDate, todayIn } from "@cozycakes/core";
-import { adminRepository, getDb } from "@cozycakes/db";
+import { adminRepository, getDb, ordersRepository } from "@cozycakes/db";
 import { Card, LoadingCards, PageTitle, buttonClass } from "@/components/admin/ui";
 import { requireOwner } from "@/lib/admin/dal";
 import { emailConfigured } from "@/lib/email";
@@ -23,7 +23,14 @@ async function Overview() {
   await requireOwner();
   const repo = adminRepository(getDb());
   const [cakes, settings] = await Promise.all([repo.listCakes(), repo.getSettings()]);
-  const days = await repo.listDays(todayIn(settings.timeZone));
+  const today = todayIn(settings.timeZone);
+  const [days, upcoming] = await Promise.all([
+    repo.listDays(today),
+    ordersRepository(getDb()).upcoming(today),
+  ]);
+  const open = upcoming.filter((o) => o.status !== "cancelled");
+  const todays = open.filter((o) => o.date === today).length;
+  const toStart = open.filter((o) => o.status === "confirmed").length;
   const onMenu = cakes.filter((c) => c.status === "visible").length;
   const paused = cakes.filter((c) => c.status === "paused").length;
   const drafts = cakes.filter((c) => c.status === "draft").length;
@@ -71,10 +78,15 @@ async function Overview() {
       <Card>
         <h2 className="font-display text-2xl font-semibold">Orders</h2>
         <p className="mt-2 text-cocoa-700">
-          {checkoutEnabled()
-            ? "Every new order is emailed to you. An order board here comes next."
-            : "Customers send their cart to you on Instagram until online payments are switched on."}
+          {open.length
+            ? `${todays} for today · ${toStart} not started yet · ${open.length} coming up`
+            : checkoutEnabled()
+              ? "No orders coming up yet. New paid orders appear here and in your inbox."
+              : "Customers send their cart to you on Instagram until online payments are switched on."}
         </p>
+        <Link href="/admin/orders" className={`${buttonClass.soft} mt-4`}>
+          Open the orders board
+        </Link>
       </Card>
 
       <Card>

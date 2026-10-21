@@ -1,42 +1,12 @@
 import { createHmac } from "node:crypto";
-import { expect, test, type APIRequestContext, type Page, type TestInfo } from "@playwright/test";
-import {
-  CartItemSchema,
-  type Availability,
-  type CakeDetail,
-  type CheckoutRequest,
-} from "@cozycakes/core";
+import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { CartItemSchema, type Availability, type CheckoutRequest } from "@cozycakes/core";
 import { expectAccessible } from "./a11y";
 import { emailsTo, ownerEmailFor, signInAsOwner } from "./outbox";
+import { cartLine } from "./shop";
 
 // US3: Choose a date, check out, and pay online. Payments use the fake test provider
 // (PAYMENT_PROVIDER=test in playwright.config.ts), which signs results like Razorpay does.
-// Relies on the development seed: Chocolate Truffle Dream is ₹1,400 for 1 kg, 2 days' notice.
-
-const CAKE = "chocolate-truffle-dream";
-
-/** A 1 kg cake with the first choice of every required group, as a cart line. */
-async function cartLine(request: APIRequestContext) {
-  const cake = (await (await request.get(`/api/v1/cakes/${CAKE}`)).json()) as CakeDetail;
-  const size = cake.sizes.find((s) => s.label === "1 kg")!;
-  const options = cake.optionGroups.filter((g) => g.required).map((g) => g.options[0]!);
-  return {
-    id: `line-${Date.now()}`,
-    cakeId: cake.id,
-    sizeId: size.id,
-    optionIds: options.map((o) => o.id),
-    message: "",
-    referencePhoto: null,
-    quantity: 1,
-    snapshot: {
-      cakeSlug: cake.slug,
-      cakeName: cake.name,
-      sizeLabel: size.label,
-      choices: options.map((o) => o.name),
-      unitPrice: size.price + options.reduce((sum, o) => sum + o.priceDelta, 0),
-    },
-  };
-}
 
 async function fillCart(page: Page) {
   const line = await cartLine(page.request);
@@ -94,7 +64,9 @@ test("pay as a guest for pickup and land on the celebration", async ({ page }, t
   await expect(page).toHaveURL(/\/orders\/[\w-]{20,}\?placed=1$/);
   await expect(page.getByRole("heading", { level: 1, name: "Thank you, Ananya!" })).toBeVisible();
   const number = (await page.getByText(/^Order CC-\d+$/).textContent())!.replace("Order ", "");
-  await expect(page.getByText("Confirmed", { exact: true })).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "Order details" }).getByText("Confirmed", { exact: true }),
+  ).toBeVisible();
   await expectAccessible(page);
 
   // Scenario 3: a confirmation message with the order number and tracking link.

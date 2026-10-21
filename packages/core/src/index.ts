@@ -8,3 +8,4 @@ export * from "./schemas/admin";
 export * from "./availability";
 export * from "./schemas/checkout";
 export * from "./payments";
+export * from "./orders";

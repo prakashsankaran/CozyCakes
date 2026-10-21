@@ -2,15 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { formatCalendarDate, formatMoney } from "@cozycakes/core";
+import { formatCalendarDate, formatMoney, isFinalStatus, type OrderStatus } from "@cozycakes/core";
+import { AutoRefresh } from "@/components/orders/auto-refresh";
+import { OrderTimeline } from "@/components/orders/order-timeline";
+import { StatusChip } from "@/components/orders/status-chip";
 import { getOrderByTrackingToken } from "@/lib/checkout/service";
 import { site } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Your order", robots: { index: false } };
 
 /**
- * The private order page (FR-016, FR-018): the celebratory confirmation right after paying, and
- * the link in the confirmation email. US4 adds the live status timeline.
+ * The private order page (FR-016, FR-018): the celebratory confirmation right after paying, then
+ * the link in every email, showing where the cake is on its journey. Anyone with the link can see
+ * it, so it shows the customer's first name and the address but never their phone or email.
  */
 export default function OrderPage({ params }: PageProps<"/orders/[token]">) {
   return (
@@ -46,7 +50,9 @@ async function Order({ params }: { params: PageProps<"/orders/[token]">["params"
   const found = /^[\w-]{20,64}$/.test(token) ? await getOrderByTrackingToken(token) : null;
   if (!found) notFound();
   const { order, pickup } = found;
-  const firstName = order.contactName.split(" ")[0];
+  const firstName = order.contactName.split(" ")[0]!;
+  const { headline, line } = hero(order.status, firstName, order.cancelReason);
+  const celebrate = ["confirmed", "delivered", "collected"].includes(order.status);
   const how = order.fulfilment === "delivery" ? "Delivery" : "Pickup";
   const address = order.address
     ? [
@@ -62,36 +68,52 @@ async function Order({ params }: { params: PageProps<"/orders/[token]">["params"
 
   return (
     <article>
+      {!isFinalStatus(order.status) && <AutoRefresh />}
       <div aria-hidden="true" className="relative h-20 overflow-hidden">
-        {SPRINKLES.map((s, i) => (
-          <span
-            key={i}
-            className={`animate-sprinkle absolute top-0 h-2 w-5 rounded-full ${s.color}`}
-            style={
-              {
-                left: s.left,
-                "--delay": `${s.delay}ms`,
-                "--fall": `${s.fall}px`,
-                "--spin": `${s.spin}deg`,
-              } as React.CSSProperties
-            }
-          />
-        ))}
+        {celebrate &&
+          SPRINKLES.map((s, i) => (
+            <span
+              key={i}
+              className={`animate-sprinkle absolute top-0 h-2 w-5 rounded-full ${s.color}`}
+              style={
+                {
+                  left: s.left,
+                  "--delay": `${s.delay}ms`,
+                  "--fall": `${s.fall}px`,
+                  "--spin": `${s.spin}deg`,
+                } as React.CSSProperties
+              }
+            />
+          ))}
       </div>
       <p className="animate-rise font-bold text-blush-700">Order {order.number}</p>
       <h1
         className="animate-rise font-display text-4xl font-semibold sm:text-5xl"
         style={{ "--delay": "80ms" } as React.CSSProperties}
       >
-        Thank you, {firstName}!
+        {headline}
       </h1>
       <p
         className="animate-rise mt-3 text-lg"
         style={{ "--delay": "160ms" } as React.CSSProperties}
       >
-        Your cake is booked into my baking diary. I&rsquo;ll bake it fresh, just for you. A
-        confirmation is on its way to your inbox.
+        {line}
       </p>
+
+      <section
+        aria-labelledby="progress-heading"
+        className="animate-rise mt-8 rounded-[var(--radius-lg)] bg-white/70 p-5 shadow-[var(--shadow-soft)] ring-1 ring-cocoa-900/5"
+        style={{ "--delay": "200ms" } as React.CSSProperties}
+      >
+        <h2 id="progress-heading" className="sr-only">
+          Where your cake is
+        </h2>
+        <OrderTimeline
+          status={order.status}
+          fulfilment={order.fulfilment}
+          timeline={order.timeline}
+        />
+      </section>
 
       <section
         aria-label="Order details"
@@ -102,9 +124,7 @@ async function Order({ params }: { params: PageProps<"/orders/[token]">["params"
           <p className="font-display text-xl font-semibold">
             {how} on {formatCalendarDate(order.date)}
           </p>
-          <span className="rounded-[var(--radius-pill)] bg-pistachio-200 px-3 py-1 text-sm font-bold">
-            {order.status === "confirmed" ? "Confirmed" : order.status.replace(/_/g, " ")}
-          </span>
+          <StatusChip status={order.status} />
         </div>
         <p className="mt-1 text-cocoa-700">{order.slotLabel}</p>
         <p className="mt-3 text-sm">
@@ -148,29 +168,33 @@ async function Order({ params }: { params: PageProps<"/orders/[token]">["params"
       </section>
 
       <section className="animate-rise mt-8" style={{ "--delay": "320ms" } as React.CSSProperties}>
-        <h2 className="font-display text-2xl font-semibold">What happens next</h2>
-        <ol className="mt-3 grid gap-3">
-          {[
-            ["📬", "Your confirmation email has this page's link. Keep it handy."],
-            ["🧁", "I bake your cake fresh, close to the day."],
-            [
-              order.fulfilment === "delivery" ? "🛵" : "🏡",
-              order.fulfilment === "delivery"
-                ? `It arrives on ${formatCalendarDate(order.date)}, ${order.slotLabel}.`
-                : `Collect it on ${formatCalendarDate(order.date)}, ${order.slotLabel}.`,
-            ],
-          ].map(([emoji, text]) => (
-            <li
-              key={text}
-              className="flex items-start gap-3 rounded-[var(--radius-md)] bg-cream-100 p-3"
-            >
-              <span aria-hidden="true" className="text-2xl">
-                {emoji}
-              </span>
-              <span>{text}</span>
-            </li>
-          ))}
-        </ol>
+        {order.status === "confirmed" && (
+          <>
+            <h2 className="font-display text-2xl font-semibold">What happens next</h2>
+            <ol className="mt-3 grid gap-3">
+              {[
+                ["📬", "Your confirmation email has this page's link. Keep it handy."],
+                ["🧁", "I bake your cake fresh, close to the day."],
+                [
+                  order.fulfilment === "delivery" ? "🛵" : "🏡",
+                  order.fulfilment === "delivery"
+                    ? `It arrives on ${formatCalendarDate(order.date)}, ${order.slotLabel}.`
+                    : `Collect it on ${formatCalendarDate(order.date)}, ${order.slotLabel}.`,
+                ],
+              ].map(([emoji, text]) => (
+                <li
+                  key={text}
+                  className="flex items-start gap-3 rounded-[var(--radius-md)] bg-cream-100 p-3"
+                >
+                  <span aria-hidden="true" className="text-2xl">
+                    {emoji}
+                  </span>
+                  <span>{text}</span>
+                </li>
+              ))}
+            </ol>
+          </>
+        )}
         <p className="mt-4 text-sm text-cocoa-700">
           Questions? Message me on{" "}
           <a href={site.instagramUrl} className="font-bold underline">
@@ -187,4 +211,48 @@ async function Order({ params }: { params: PageProps<"/orders/[token]">["params"
       </section>
     </article>
   );
+}
+
+/** The page's big line, in the baker's voice, for wherever the order is now. */
+function hero(status: OrderStatus, name: string, cancelReason: string | null) {
+  switch (status) {
+    case "confirmed":
+      return {
+        headline: `Thank you, ${name}!`,
+        line: "Your cake is booked into my baking diary. I’ll bake it fresh, just for you. A confirmation is on its way to your inbox.",
+      };
+    case "baking":
+      return {
+        headline: `It’s in the oven, ${name}!`,
+        line: "I’m baking your cake right now. This page updates as it moves along.",
+      };
+    case "ready":
+      return {
+        headline: `Your cake is ready, ${name}!`,
+        line: "It’s finished, decorated and boxed. Next stop: you.",
+      };
+    case "out_for_delivery":
+      return {
+        headline: `On its way, ${name}!`,
+        line: "Your cake has left the kitchen. Keep your phone close in case the rider calls.",
+      };
+    case "ready_for_pickup":
+      return {
+        headline: `Ready when you are, ${name}!`,
+        line: "Your cake is waiting for you. Pop over in your pickup slot.",
+      };
+    case "delivered":
+    case "collected":
+      return {
+        headline: `Enjoy every slice, ${name}!`,
+        line: "Thank you for letting me bake for you. I hope it made the day sweeter.",
+      };
+    case "cancelled":
+      return {
+        headline: "This order was cancelled",
+        line: cancelReason
+          ? `I’m so sorry, ${name}. ${cancelReason}`
+          : `I’m so sorry, ${name}. I had to cancel this order.`,
+      };
+  }
 }

@@ -1,9 +1,16 @@
-import { formatCalendarDate, formatMoney, type CheckoutSnapshot } from "@cozycakes/core";
+import {
+  ORDER_STATUS_COPY,
+  formatCalendarDate,
+  formatMoney,
+  notifiesCustomer,
+  type CheckoutSnapshot,
+  type OrderStatus,
+} from "@cozycakes/core";
 import { emailConfigured, sendEmail, type Email } from "@/lib/email";
 
 /**
- * Order emails (FR-016, FR-025): a confirmation for the customer and a heads-up for the owner.
- * Sending never blocks or undoes an order; failures are logged.
+ * Order emails (FR-016, FR-019, FR-025): a confirmation and status updates for the customer, and a
+ * heads-up for the owner. Sending never blocks or undoes an order; failures are logged.
  */
 
 type Placed = { number: string; trackingToken: string; snapshot: CheckoutSnapshot };
@@ -100,4 +107,63 @@ export async function sendOrderEmails(order: Placed, origin: string) {
   ];
   const results = await Promise.allSettled(emails.map(sendEmail));
   for (const r of results) if (r.status === "rejected") console.error(r.reason);
+}
+
+type Moved = {
+  number: string;
+  trackingToken: string;
+  contact: { name: string; email: string };
+  fulfilment: "delivery" | "pickup";
+  date: string;
+  slotLabel: string;
+  status: OrderStatus;
+  cancelReason: string | null;
+};
+
+const STATUS_SUBJECTS: Partial<Record<OrderStatus, string>> = {
+  ready: "is ready 🎂",
+  out_for_delivery: "is on its way 🛵",
+  ready_for_pickup: "is ready to collect 🏡",
+  delivered: "has arrived 🎉",
+  collected: "is in your hands 🎉",
+  cancelled: "was cancelled",
+};
+
+/** Status updates for the customer (FR-019); `refunded` adds the refund line to cancellations. */
+export function orderStatusEmail(order: Moved, origin: string, refunded: boolean): Email {
+  const link = `${origin}/orders/${order.trackingToken}`;
+  const copy = ORDER_STATUS_COPY[order.status];
+  const when = `${order.fulfilment === "delivery" ? "Delivery" : "Pickup"} on ${formatCalendarDate(order.date)}, ${order.slotLabel}`;
+  const paragraphs =
+    order.status === "cancelled"
+      ? [
+          `Hi ${order.contact.name}, I'm so sorry: I've had to cancel order ${order.number}.`,
+          ...(order.cancelReason ? [`Why: ${order.cancelReason}`] : []),
+          refunded
+            ? "Your payment is being refunded to the way you paid. Banks usually take 5 to 7 working days."
+            : "I'll be in touch about your payment.",
+        ]
+      : [`Hi ${order.contact.name}, ${copy.customer}`, when];
+  return {
+    to: order.contact.email,
+    subject: `Your CozyCakes order ${order.number} ${STATUS_SUBJECTS[order.status] ?? `is ${copy.label.toLowerCase()}`}`,
+    text: [...paragraphs, `Follow your order: ${link}`].join("\n\n"),
+    html: html(`Order ${order.number}: ${copy.label}`, paragraphs, {
+      href: link,
+      label: "Follow your order",
+    }),
+  };
+}
+
+export async function sendOrderStatusEmail(order: Moved, origin: string, refunded = false) {
+  if (!notifiesCustomer(order.status)) return;
+  if (!emailConfigured()) {
+    console.warn(`Order ${order.number} is ${order.status}, but email isn't set up`);
+    return;
+  }
+  try {
+    await sendEmail(orderStatusEmail(order, origin, refunded));
+  } catch (error) {
+    console.error(error);
+  }
 }

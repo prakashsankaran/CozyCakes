@@ -36,7 +36,7 @@ is validated against its zod schema before it is sent. Authenticated calls use t
 
 | Method & path | Purpose | Notes |
 |---------------|---------|-------|
-| `GET /api/v1/orders/track/{tracking_token}` | Order status timeline and details | No login; token is the secret |
+| `GET /api/v1/orders/track/{tracking_token}` | Order status timeline and details (`TrackedOrderSchema`) | No login; token is the secret. Never includes the customer's email or phone. `404 ORDER_NOT_FOUND` |
 | `GET /api/v1/me/orders` | Signed-in customer's orders | Auth |
 | `POST /api/v1/me/orders/{id}/reorder` | Returns cart items for a past order, re-validated | Auth |
 | `GET/POST/DELETE /api/v1/me/favourites` | Manage favourites | Auth |
@@ -57,6 +57,12 @@ is validated against its zod schema before it is sent. Authenticated calls use t
 (`packages/core/src/schemas/admin.ts`) and the same repository (`packages/db/src/repositories/admin.ts`).
 The REST endpoints below are added when the mobile app needs them; menu, choices, settings and
 availability are owner-only, and staff get the order endpoints.
+
+*As built (US4, 2026-10-21)*: orders use the Server Actions `advanceOrder({ orderId, to })` and
+`cancelOrder({ orderId, reason })` with `MoveOrderInputSchema` and `CancelOrderInputSchema` from
+`packages/core/src/orders.ts`, over `packages/db/src/repositories/orders.ts`. A move the order
+can no longer make (someone moved it first) is refused, which the REST endpoint will report as
+`409 INVALID_TRANSITION`. Cancelling is owner-only because it refunds the customer.
 
 | Method & path | Purpose |
 |---------------|---------|
