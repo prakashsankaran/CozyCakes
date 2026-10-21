@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import QRCode from "qrcode";
 import { formatCalendarDate, formatMoney, isFinalStatus, type OrderStatus } from "@cozycakes/core";
 import { SaveDetails } from "@/components/account/save-details";
 import { AutoRefresh } from "@/components/orders/auto-refresh";
 import { OrderTimeline } from "@/components/orders/order-timeline";
 import { StatusChip } from "@/components/orders/status-chip";
+import { UpiPay } from "@/components/orders/upi-pay";
 import { currentCustomer } from "@/lib/account/session";
 import { getOrderByTrackingToken } from "@/lib/checkout/service";
 import { site } from "@/lib/site";
@@ -51,10 +53,26 @@ async function Order({ params }: { params: PageProps<"/orders/[token]">["params"
   const { token } = await params;
   const found = /^[\w-]{20,64}$/.test(token) ? await getOrderByTrackingToken(token) : null;
   if (!found) notFound();
-  const { order, pickup } = found;
+  const { order, pickup, upi } = found;
   const signedIn = (await currentCustomer()) !== null;
   const firstName = order.contactName.split(" ")[0]!;
-  const { headline, line } = hero(order.status, firstName, order.cancelReason);
+  const { headline, line } = hero(order.status, firstName, order.cancelReason, order.upiClaimed);
+  const qrCode = upi
+    ? `data:image/svg+xml;base64,${Buffer.from(
+        await QRCode.toString(upi.link, {
+          type: "svg",
+          margin: 1,
+          errorCorrectionLevel: "M",
+          color: { dark: "#3b2420", light: "#ffffff" },
+        }),
+      ).toString("base64")}`
+    : null;
+  const paidLabel =
+    order.status === "awaiting_payment"
+      ? "To pay"
+      : order.timeline.some((t) => t.status === "confirmed")
+        ? "Paid"
+        : "Total";
   const celebrate = ["confirmed", "delivered", "collected"].includes(order.status);
   const how = order.fulfilment === "delivery" ? "Delivery" : "Pickup";
   const address = order.address
@@ -102,6 +120,16 @@ async function Order({ params }: { params: PageProps<"/orders/[token]">["params"
       >
         {line}
       </p>
+
+      {upi && qrCode && (
+        <UpiPay
+          token={token}
+          amount={formatMoney(order.total)}
+          orderNumber={order.number}
+          upi={upi}
+          qrCode={qrCode}
+        />
+      )}
 
       <section
         aria-labelledby="progress-heading"
@@ -169,7 +197,7 @@ async function Order({ params }: { params: PageProps<"/orders/[token]">["params"
               <dd className="text-right">−{formatMoney(order.discount)}</dd>
             </>
           )}
-          <dt className="mt-1 font-display text-lg font-semibold">Paid</dt>
+          <dt className="mt-1 font-display text-lg font-semibold">{paidLabel}</dt>
           <dd className="mt-1 text-right font-display text-lg font-semibold">
             {formatMoney(order.total)}
           </dd>
@@ -225,8 +253,18 @@ async function Order({ params }: { params: PageProps<"/orders/[token]">["params"
 }
 
 /** The page's big line, in the baker's voice, for wherever the order is now. */
-function hero(status: OrderStatus, name: string, cancelReason: string | null) {
+function hero(status: OrderStatus, name: string, cancelReason: string | null, claimed: boolean) {
   switch (status) {
+    case "awaiting_payment":
+      return claimed
+        ? {
+            headline: `Thank you, ${name}!`,
+            line: "I’m checking for your payment and will confirm your order as soon as I see it.",
+          }
+        : {
+            headline: `Almost there, ${name}!`,
+            line: "Your date is held for you. Pay by UPI below and I’ll confirm your order as soon as I see it.",
+          };
     case "confirmed":
       return {
         headline: `Thank you, ${name}!`,

@@ -6,6 +6,8 @@ import {
   normalizeDiscountCode,
   orderTotal,
   todayIn,
+  UPI_PAY_MINUTES,
+  upiPaymentLink,
   type Availability,
   type CartItem,
   type CheckoutCreated,
@@ -24,8 +26,8 @@ import {
   getDb,
 } from "@cozycakes/db";
 import { priceCartForOrder } from "@/lib/catalog";
-import { sendOrderEmails } from "./notify";
-import { paymentProvider } from "./payments";
+import { sendOrderEmails, sendUpiClaimEmail } from "./notify";
+import { checkoutMethod, paymentProvider } from "./payments";
 
 /**
  * Checkout (US3): availability, delivery checks, starting a payment and confirming it. Shared by
@@ -45,8 +47,17 @@ export class CheckoutError extends Error {
 
 const repo = () => checkoutRepository(getDb());
 
+/** UPI orders hold their date for an hour; after that, unclaimed ones let it go. */
+export async function releaseUnpaidOrders() {
+  const released = await repo().releaseUnpaidOrders(
+    new Date(Date.now() - UPI_PAY_MINUTES * 60_000),
+  );
+  if (released.length) console.info(`Released unpaid UPI orders: ${released.join(", ")}`);
+}
+
 export async function getAvailability(leadTimeDays: number): Promise<Availability> {
   await connection();
+  await releaseUnpaidOrders();
   const { timeZone, bookingWindowDays } = await repo().rules();
   const today = todayIn(timeZone);
   const { bakery, overrides, booked, slots } = await repo().availability(
@@ -101,11 +112,16 @@ const DATE_MESSAGES = {
 } as const;
 
 /** Re-prices the cart, holds the date and registers the payment (contracts: POST /checkouts). */
-export async function startCheckout(request: ParsedCheckoutRequest): Promise<CheckoutCreated> {
-  const provider = paymentProvider();
-  if (!provider) {
+export async function startCheckout(
+  request: ParsedCheckoutRequest,
+  origin: string,
+): Promise<CheckoutCreated> {
+  const method = await checkoutMethod();
+  const provider = method === "upi" ? null : paymentProvider();
+  if (!method || (method !== "upi" && !provider)) {
     throw new CheckoutError(503, "CHECKOUT_UNAVAILABLE", "Online checkout isn't switched on yet");
   }
+  await releaseUnpaidOrders();
 
   const { quote, lines } = await priceCartForOrder(request.items);
   const problems = quote.lines.flatMap((l) => l.issues);
@@ -169,6 +185,19 @@ export async function startCheckout(request: ParsedCheckoutRequest): Promise<Che
       });
     }
     throw error;
+  }
+
+  if (!provider) {
+    // UPI paid by hand: the order exists now, awaiting payment, and holds the date meanwhile.
+    const order = await repo().placeUnpaidOrder(opened.checkoutId);
+    await sendOrderEmails(order, origin, { awaitingPayment: true });
+    return {
+      checkoutId: opened.checkoutId,
+      amount: snapshot.total,
+      currency: "INR",
+      expiresAt: new Date(Date.now() + UPI_PAY_MINUTES * 60_000).toISOString(),
+      payment: { provider: "upi", orderNumber: order.number, trackingToken: order.trackingToken },
+    };
   }
 
   let providerOrderId: string;
@@ -268,11 +297,42 @@ export async function handlePaymentWebhook(rawBody: string, signature: string, o
   }
 }
 
-/** The private order page: the order plus where to collect it (FR-016, FR-018). */
+/**
+ * The private order page: the order, where to collect it, and how to pay while a UPI order
+ * awaits payment (FR-016, FR-018).
+ */
 export async function getOrderByTrackingToken(token: string) {
   await connection();
+  await releaseUnpaidOrders();
   const [order, bakery] = await Promise.all([repo().orderByTrackingToken(token), repo().rules()]);
-  return order
-    ? { order, pickup: { address: bakery.pickupAddress, instructions: bakery.pickupInstructions } }
-    : null;
+  if (!order) return null;
+  const upi =
+    order.status === "awaiting_payment" && bakery.upiId
+      ? {
+          upiId: bakery.upiId,
+          payeeName: bakery.upiName || "CozyCakes",
+          link: upiPaymentLink({
+            upiId: bakery.upiId,
+            payeeName: bakery.upiName || "CozyCakes",
+            amount: order.total,
+            note: `CozyCakes ${order.number}`,
+          }),
+          payBy: new Date(order.createdAt.getTime() + UPI_PAY_MINUTES * 60_000),
+          claimed: order.upiClaimed,
+        }
+      : null;
+  return {
+    order,
+    pickup: { address: bakery.pickupAddress, instructions: bakery.pickupInstructions },
+    upi,
+  };
+}
+
+/** The customer says they've paid by UPI (contracts: POST /orders/track/{token}/paid). */
+export async function claimUpiPayment(token: string, reference: string) {
+  const claimed = await repo().claimUpiPayment(token, reference);
+  if (!claimed) {
+    throw new CheckoutError(409, "NOT_AWAITING_PAYMENT", "This order isn't waiting for a payment");
+  }
+  await sendUpiClaimEmail({ ...claimed, reference });
 }

@@ -62,6 +62,8 @@ async function Detail({ params }: { params: PageProps<"/admin/orders/[id]">["par
         .join(", ")
     : null;
   const refund = order.payment?.refunds.at(-1);
+  const paid = order.payment?.status === "captured" || order.payment?.status === "refunded";
+  const upiClaim = order.status === "awaiting_payment" ? order.payment : null;
 
   return (
     <>
@@ -76,12 +78,27 @@ async function Detail({ params }: { params: PageProps<"/admin/orders/[id]">["par
         <strong>{formatCalendarDate(order.date)}</strong>, {order.slotLabel}
       </p>
 
+      {upiClaim && (
+        <p
+          role="note"
+          className="mt-4 rounded-[var(--radius-md)] bg-cream-100 p-4 ring-1 ring-caramel-400"
+        >
+          <strong>Waiting for {formatMoney(order.total)} by UPI.</strong>{" "}
+          {upiClaim.claimedAt
+            ? `The customer says they paid at ${when.format(upiClaim.claimedAt)}${
+                upiClaim.reference ? ` (UPI reference ${upiClaim.reference})` : ""
+              }. `
+            : "The customer hasn’t said they’ve paid yet. "}
+          Check your UPI app, and tap “Payment received” once the money is there.
+        </p>
+      )}
+
       {!isFinalStatus(order.status) && (
         <OrderActions
           orderId={order.id}
           next={next ? { status: next, label: ORDER_STATUS_COPY[next].action } : null}
           canCancel={staff.role === "owner"}
-          paidOnline={order.payment !== null}
+          refundBy={!paid ? null : order.payment?.provider === "upi" ? "upi" : "provider"}
           total={formatMoney(order.total)}
         />
       )}
@@ -155,7 +172,9 @@ async function Detail({ params }: { params: PageProps<"/admin/orders/[id]">["par
                 <dd className="text-right">−{formatMoney(order.discount)}</dd>
               </>
             )}
-            <dt className="font-bold">Paid</dt>
+            <dt className="font-bold">
+              {order.status === "awaiting_payment" ? "To pay by UPI" : paid ? "Paid" : "Total"}
+            </dt>
             <dd className="text-right font-bold">{formatMoney(order.total)}</dd>
           </dl>
           {refund && (
@@ -166,7 +185,9 @@ async function Detail({ params }: { params: PageProps<"/admin/orders/[id]">["par
             >
               {refund.providerRefundId
                 ? `Refund of ${formatMoney(refund.amount)} started.`
-                : `The refund of ${formatMoney(refund.amount)} didn't go through. Refund it from your Razorpay dashboard.`}
+                : refund.status === "manual"
+                  ? `Send ${formatMoney(refund.amount)} back to the customer from your UPI app.`
+                  : `The refund of ${formatMoney(refund.amount)} didn't go through. Refund it from your Razorpay dashboard.`}
             </p>
           )}
           {order.cancelReason && (

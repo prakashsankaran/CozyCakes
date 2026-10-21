@@ -31,12 +31,13 @@ export async function moveOrder(input: {
   return moved;
 }
 
-export type RefundOutcome = "refunded" | "not_paid_online" | "failed";
+/** `manual`: paid by UPI by hand, so the baker sends the money back from their UPI app. */
+export type RefundOutcome = "refunded" | "not_paid_online" | "failed" | "manual";
 
 /**
  * Cancels an order with the customer's reason and refunds an online payment in full. The order is
  * cancelled (and its date's place freed) even if the refund fails; the baker is then told to refund
- * it from the Razorpay dashboard.
+ * it from the Razorpay dashboard. A UPI payment received by hand is refunded by hand too.
  */
 export async function cancelOrder(input: {
   orderId: string;
@@ -52,7 +53,16 @@ export async function cancelOrder(input: {
 
   let refund: RefundOutcome = "not_paid_online";
   const payment = await repo().capturedPayment(order.id);
-  if (payment) {
+  if (payment?.provider === "upi") {
+    await repo().recordRefund({
+      paymentId: payment.id,
+      amount: payment.amount,
+      providerRefundId: null,
+      status: "manual",
+      reason: input.reason,
+    });
+    refund = "manual";
+  } else if (payment) {
     const provider = paymentProvider();
     try {
       if (!provider || provider.name !== payment.provider) {

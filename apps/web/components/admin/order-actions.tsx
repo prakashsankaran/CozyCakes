@@ -14,13 +14,14 @@ export function OrderActions({
   orderId,
   next,
   canCancel,
-  paidOnline,
+  refundBy,
   total,
 }: {
   orderId: string;
   next: { status: ForwardStatus; label: string } | null;
   canCancel: boolean;
-  paidOnline: boolean;
+  /** How a paid order's money goes back: automatically, or by the baker from their UPI app. */
+  refundBy: "provider" | "upi" | null;
   total: string;
 }) {
   const router = useRouter();
@@ -77,7 +78,11 @@ export function OrderActions({
           </label>
           <p className="text-sm text-cocoa-700">
             The customer sees this.{" "}
-            {paidOnline ? `They get their ${total} back in full.` : "They didn't pay online."}
+            {refundBy === "provider"
+              ? `They get their ${total} back in full.`
+              : refundBy === "upi"
+                ? `Send their ${total} back from your UPI app afterwards.`
+                : "They haven't paid, so there's nothing to refund."}
           </p>
           <textarea
             id="cancel-reason"
@@ -90,7 +95,7 @@ export function OrderActions({
           />
           <div className="mt-3 flex flex-wrap gap-2">
             <button type="submit" disabled={pending} className={buttonClass.primary}>
-              {paidOnline ? "Cancel and refund" : "Cancel order"}
+              {refundBy === "provider" ? "Cancel and refund" : "Cancel order"}
             </button>
             <button
               type="button"

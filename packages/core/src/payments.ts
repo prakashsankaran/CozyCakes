@@ -9,6 +9,33 @@
 export type ProviderOrder = { orderId: string };
 export type ProviderRefund = { refundId: string; status: string };
 
+/**
+ * UPI paid by hand (research.md §6 "UPI without a gateway"): checkout shows the shop's UPI ID and
+ * a QR code, and the baker confirms the money arrived. No gateway, so no KYC and no fees.
+ */
+export const UPI_ID_PATTERN = /^[a-zA-Z0-9._-]{2,256}@[a-zA-Z][a-zA-Z0-9]{1,63}$/;
+
+/** How long a UPI order holds its date before the customer says they've paid. */
+export const UPI_PAY_MINUTES = 60;
+
+/** A `upi://pay` link (NPCI's deep-link format) that opens any UPI app with everything filled in. */
+export function upiPaymentLink(input: {
+  upiId: string;
+  payeeName: string;
+  /** Paise. */
+  amount: number;
+  note: string;
+}): string {
+  const params = new URLSearchParams({
+    pa: input.upiId,
+    pn: input.payeeName,
+    am: (input.amount / 100).toFixed(2),
+    cu: "INR",
+    tn: input.note,
+  });
+  return `upi://pay?${params.toString().replace(/\+/g, "%20")}`;
+}
+
 export interface PaymentProvider {
   readonly name: "razorpay" | "test";
   /** Registers the amount with the provider before the customer pays. */

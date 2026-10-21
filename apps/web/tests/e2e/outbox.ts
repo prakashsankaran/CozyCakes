@@ -11,7 +11,7 @@ export const OUTBOX_DIR = path.resolve(".outbox", "e2e");
  */
 export const ownerEmailFor = (
   project: string,
-  spec: "admin" | "checkout" | "track" | "discounts" = "admin",
+  spec: "admin" | "checkout" | "track" | "discounts" | "upi" = "admin",
 ) =>
   spec === "admin" ? `owner-${project}@cozycakes.test` : `owner-${spec}-${project}@cozycakes.test`;
 
@@ -20,6 +20,7 @@ export const TEST_OWNER_EMAILS = ["phone", "desktop"].flatMap((project) => [
   ownerEmailFor(project, "checkout"),
   ownerEmailFor(project, "track"),
   ownerEmailFor(project, "discounts"),
+  ownerEmailFor(project, "upi"),
 ]);
 
 type Email = { to: string; subject: string; text: string };

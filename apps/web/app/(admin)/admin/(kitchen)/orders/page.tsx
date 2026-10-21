@@ -6,6 +6,7 @@ import { adminRepository, getDb, ordersRepository, type BoardOrder } from "@cozy
 import { Card, LoadingCards, PageTitle } from "@/components/admin/ui";
 import { StatusChip } from "@/components/orders/status-chip";
 import { requireStaff } from "@/lib/admin/dal";
+import { releaseUnpaidOrders } from "@/lib/checkout/service";
 
 export const metadata: Metadata = { title: "Orders" };
 
@@ -27,6 +28,7 @@ async function Board({
   searchParams: PageProps<"/admin/orders">["searchParams"];
 }) {
   await requireStaff();
+  await releaseUnpaidOrders();
   const past = (await searchParams).view === "past";
   const { timeZone } = await adminRepository(getDb()).getSettings();
   const today = todayIn(timeZone);
@@ -81,7 +83,7 @@ async function Board({
           <p className="mt-1 text-cocoa-700">
             {past
               ? "Delivered, collected and cancelled orders land here after their day."
-              : "New paid orders appear here the moment the customer pays."}
+              : "New orders appear here the moment the customer places them."}
           </p>
         </Card>
       ) : (
@@ -138,7 +140,13 @@ function OrderCard({ order, showDate }: { order: BoardOrder; showDate: boolean }
           </li>
         ))}
       </ul>
-      <p className="mt-2 text-right font-bold">{formatMoney(order.total)}</p>
+      <p className="mt-2 flex items-baseline justify-between gap-2">
+        <span className="text-sm font-bold text-caramel-700">
+          {order.status === "awaiting_payment" &&
+            (order.upiClaimed ? "📲 Says they’ve paid: check UPI" : "Not paid yet")}
+        </span>
+        <span className="font-bold">{formatMoney(order.total)}</span>
+      </p>
     </Link>
   );
 }

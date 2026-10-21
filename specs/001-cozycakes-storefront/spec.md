@@ -276,6 +276,12 @@ signing in isn't switched on yet.
   local instant-payment methods; CozyCakes MUST NOT store card details.
 - **FR-015**: An order MUST only be confirmed after the payment provider verifies payment; the
   selected date's capacity MUST be held briefly during payment and released if payment fails.
+  *As built (2026-10-21)*: until a payment gateway is set up, customers can pay by UPI by hand.
+  The order is placed as **Awaiting payment** and holds its date; the order page shows the shop's
+  UPI ID, a QR code and an "Open a UPI app" link, and the customer taps "I've paid" (optionally
+  with the 12-digit UPI reference). The order is only confirmed when the owner or staff tap
+  "Payment received" after seeing the money. An order nobody says they've paid for within an hour
+  is cancelled automatically and its date freed.
 - **FR-016**: On confirmation the customer MUST see a confirmation screen and receive a confirmation
   message (email, and optionally WhatsApp/SMS) with order number and tracking link.
 - **FR-017**: Customers MAY apply a discount code created by the baker. *As built (2026-10-21)*: a

@@ -23,6 +23,7 @@ import { id, timestamps } from "./common";
  */
 
 export const orderStatus = pgEnum("order_status", [
+  "awaiting_payment",
   "confirmed",
   "baking",
   "ready",
@@ -163,6 +164,10 @@ export const payments = pgTable("payments", {
   amount: integer("amount").notNull(),
   status: paymentStatus("status").notNull(),
   rawEvent: jsonb("raw_event"),
+  /** UPI paid by hand: the reference (UTR) the customer typed, if any. */
+  reference: text("reference"),
+  /** UPI paid by hand: when the customer said they'd paid. */
+  claimedAt: timestamp("claimed_at", { withTimezone: true }),
   ...timestamps,
 });
 

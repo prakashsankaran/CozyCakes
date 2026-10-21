@@ -1,9 +1,12 @@
 import { CheckoutCreatedSchema, CheckoutRequestSchema } from "@cozycakes/core";
 import { apiError, apiJson } from "@/lib/api";
-import { checkoutErrorResponse } from "@/lib/checkout/http";
+import { checkoutErrorResponse, siteOrigin } from "@/lib/checkout/http";
 import { startCheckout } from "@/lib/checkout/service";
 
-/** Starts a checkout: re-prices, holds the date and registers the payment. */
+/**
+ * Starts a checkout: re-prices, holds the date and registers the payment. With UPI paid by hand,
+ * the order is placed straight away, awaiting payment.
+ */
 export async function POST(request: Request) {
   const body = CheckoutRequestSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) {
@@ -12,7 +15,9 @@ export async function POST(request: Request) {
     });
   }
   try {
-    return apiJson(CheckoutCreatedSchema, await startCheckout(body.data), { status: 201 });
+    return apiJson(CheckoutCreatedSchema, await startCheckout(body.data, siteOrigin(request)), {
+      status: 201,
+    });
   } catch (error) {
     return checkoutErrorResponse(error);
   }

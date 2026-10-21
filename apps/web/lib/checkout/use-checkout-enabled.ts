@@ -2,26 +2,37 @@
 
 import { useEffect, useState } from "react";
 
-let cached: Promise<boolean> | null = null;
+export type CheckoutConfig = { enabled: boolean; method: "razorpay" | "test" | "upi" | null };
+
+let cached: Promise<CheckoutConfig> | null = null;
+const OFF: CheckoutConfig = { enabled: false, method: null };
 
 /**
- * Whether online checkout is switched on (Razorpay keys set). `null` while unknown. The answer is
- * fetched once per page load and shared by the cart and checkout.
+ * Whether online checkout is switched on (Razorpay keys or a UPI ID set) and how customers pay.
+ * `null` while unknown. Fetched once per page load and shared by the cart and checkout.
  */
-export function useCheckoutEnabled(): boolean | null {
-  const [enabled, setEnabled] = useState<boolean | null>(null);
+export function useCheckoutConfig(): CheckoutConfig | null {
+  const [config, setConfig] = useState<CheckoutConfig | null>(null);
   useEffect(() => {
     cached ??= fetch("/api/v1/checkout/config")
-      .then(async (res) => ((await res.json()) as { enabled?: boolean }).enabled === true)
+      .then(async (res) => {
+        const body = (await res.json()) as Partial<CheckoutConfig>;
+        return body.enabled === true ? { enabled: true, method: body.method ?? null } : OFF;
+      })
       .catch(() => {
         cached = null;
-        return false;
+        return OFF;
       });
     let live = true;
-    void cached.then((value) => live && setEnabled(value));
+    void cached.then((value) => live && setConfig(value));
     return () => {
       live = false;
     };
   }, []);
-  return enabled;
+  return config;
+}
+
+/** Whether online checkout is switched on; `null` while unknown. */
+export function useCheckoutEnabled(): boolean | null {
+  return useCheckoutConfig()?.enabled ?? null;
 }

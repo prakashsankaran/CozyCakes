@@ -105,6 +105,8 @@ export const PaymentParamsSchema = z.discriminatedUnion("provider", [
   z.object({ provider: z.literal("razorpay"), keyId: z.string(), orderId: z.string() }),
   /** Fake provider for automated tests; never available on the live site. */
   z.object({ provider: z.literal("test"), orderId: z.string() }),
+  /** UPI paid by hand: the order already exists, awaiting payment; its page shows how to pay. */
+  z.object({ provider: z.literal("upi"), orderNumber: z.string(), trackingToken: z.string() }),
 ]);
 export type PaymentParams = z.infer<typeof PaymentParamsSchema>;
 
@@ -117,6 +119,17 @@ export const CheckoutCreatedSchema = z.object({
   payment: PaymentParamsSchema,
 });
 export type CheckoutCreated = z.infer<typeof CheckoutCreatedSchema>;
+
+/** `POST /api/v1/orders/track/{token}/paid`: the customer says they've paid by UPI. */
+export const UpiPaidClaimSchema = z.object({
+  /** The 12-digit UPI reference (UTR) from their app, to help the baker find the payment. */
+  reference: z
+    .string()
+    .trim()
+    .transform((v) => v.replace(/\s+/g, ""))
+    .refine((v) => v === "" || /^\d{12}$/.test(v), "A UPI reference is 12 digits")
+    .default(""),
+});
 
 /** `POST /api/v1/checkouts/{id}/payment`: what the payment provider handed the browser. */
 export const PaymentResultSchema = z.object({

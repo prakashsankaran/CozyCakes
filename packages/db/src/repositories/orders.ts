@@ -17,7 +17,11 @@ type OrderRow = typeof orders.$inferSelect;
 export type BoardOrder = Pick<
   OrderRow,
   "id" | "number" | "status" | "fulfilment" | "date" | "slotLabel" | "total" | "contact"
-> & { items: Array<{ cakeName: string; sizeLabel: string; quantity: number }> };
+> & {
+  items: Array<{ cakeName: string; sizeLabel: string; quantity: number }>;
+  /** Awaiting a UPI payment the customer says they've made. */
+  upiClaimed: boolean;
+};
 
 export type OrderDetail = OrderRow & {
   items: Array<typeof orderItems.$inferSelect>;
@@ -64,6 +68,13 @@ export function ordersRepository(db: Database) {
         ),
       )
       .orderBy(asc(orderItems.cakeName));
+    const waiting = rows.filter((r) => r.status === "awaiting_payment").map((r) => r.id);
+    const claims = waiting.length
+      ? await db
+          .select({ orderId: payments.orderId, claimedAt: payments.claimedAt })
+          .from(payments)
+          .where(and(inArray(payments.orderId, waiting), eq(payments.provider, "upi")))
+      : [];
     return rows.map((r) => ({
       id: r.id,
       number: r.number,
@@ -74,6 +85,7 @@ export function ordersRepository(db: Database) {
       total: r.total,
       contact: r.contact,
       items: items.filter((i) => i.orderId === r.id),
+      upiClaimed: claims.some((c) => c.orderId === r.id && c.claimedAt !== null),
     }));
   }
 
@@ -156,6 +168,16 @@ export function ordersRepository(db: Database) {
           actorUserId: input.actorUserId,
           note: input.note ?? null,
         });
+        if (order.status === "awaiting_payment") {
+          // UPI paid by hand: the baker's tap is the payment's confirmation, or its end.
+          await tx
+            .update(payments)
+            .set({
+              status: input.to === "confirmed" ? "captured" : "failed",
+              updatedAt: new Date(),
+            })
+            .where(and(eq(payments.orderId, order.id), eq(payments.status, "created")));
+        }
         return {
           id: order.id,
           number: order.number,
@@ -172,7 +194,7 @@ export function ordersRepository(db: Database) {
       });
     },
 
-    /** The captured payment to refund for an order, if it was paid online. */
+    /** The captured payment to refund for an order, if it was paid (online or by UPI). */
     async capturedPayment(orderId: string) {
       const [payment] = await db
         .select()

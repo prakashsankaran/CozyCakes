@@ -1,6 +1,7 @@
 import { ORDER_STATUS_COPY, type OrderStatus } from "@cozycakes/core";
 
 const tone: Record<OrderStatus, string> = {
+  awaiting_payment: "bg-cream-100 text-cocoa-900 ring-1 ring-caramel-400",
   confirmed: "bg-blush-100 text-cocoa-900",
   baking: "bg-caramel-200 text-cocoa-900",
   ready: "bg-pistachio-200 text-cocoa-900",

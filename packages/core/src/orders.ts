@@ -7,6 +7,7 @@ import { z } from "zod";
  */
 
 export const ORDER_STATUSES = [
+  "awaiting_payment",
   "confirmed",
   "baking",
   "ready",
@@ -18,8 +19,11 @@ export const ORDER_STATUSES = [
 ] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export type OrderFulfilment = "delivery" | "pickup";
-/** Statuses an order moves forward into (Confirmed is where it starts, Cancelled is separate). */
-export type ForwardStatus = Exclude<OrderStatus, "confirmed" | "cancelled">;
+/**
+ * Statuses an order moves forward into. A paid order starts at Confirmed; a UPI order starts at
+ * Awaiting payment and moves to Confirmed when the baker sees the money. Cancelled is separate.
+ */
+export type ForwardStatus = Exclude<OrderStatus, "awaiting_payment" | "cancelled">;
 
 const FINAL: ReadonlySet<OrderStatus> = new Set(["delivered", "collected", "cancelled"]);
 
@@ -30,6 +34,8 @@ export function isFinalStatus(status: OrderStatus): boolean {
 /** The next step forward from `status`, or null once the order is finished. */
 export function nextStatus(status: OrderStatus, fulfilment: OrderFulfilment): ForwardStatus | null {
   switch (status) {
+    case "awaiting_payment":
+      return "confirmed";
     case "confirmed":
       return "baking";
     case "baking":
@@ -55,9 +61,12 @@ export function canMoveOrder(
   return to === "cancelled" || nextStatus(from, fulfilment) === to;
 }
 
-/** The customer hears about these moves (FR-019). */
+/**
+ * The customer hears about these moves (FR-019). Confirmed is told separately: reaching it from
+ * Awaiting payment sends the full order confirmation.
+ */
 export function notifiesCustomer(status: OrderStatus): boolean {
-  return status !== "confirmed" && status !== "baking";
+  return status !== "awaiting_payment" && status !== "confirmed" && status !== "baking";
 }
 
 /** The happy path shown as the order's timeline. */
@@ -72,10 +81,15 @@ export const ORDER_STATUS_COPY: Record<
   OrderStatus,
   { label: string; customer: string; action: string }
 > = {
+  awaiting_payment: {
+    label: "Awaiting payment",
+    customer: "Your date is held. Pay by UPI and I'll confirm your order.",
+    action: "Hold for payment",
+  },
   confirmed: {
     label: "Confirmed",
     customer: "Your cake is booked into my baking diary.",
-    action: "Confirm",
+    action: "Payment received",
   },
   baking: {
     label: "Baking",
@@ -118,10 +132,10 @@ export const ORDER_CANCEL_REASON_MAX = 300;
 
 export const OrderStatusSchema = z.enum(ORDER_STATUSES);
 
-/** Back office: move an order one step forward. */
+/** Back office: move an order one step forward ("confirmed" marks a UPI payment received). */
 export const MoveOrderInputSchema = z.object({
   orderId: z.uuid(),
-  to: OrderStatusSchema.exclude(["confirmed", "cancelled"]),
+  to: OrderStatusSchema.exclude(["awaiting_payment", "cancelled"]),
 });
 export type MoveOrderInput = z.infer<typeof MoveOrderInputSchema>;
 
@@ -171,5 +185,18 @@ export const TrackedOrderSchema = z.object({
   total: z.number().int(),
   /** Each status the order has reached, oldest first. */
   timeline: z.array(z.object({ status: OrderStatusSchema, at: z.string() })),
+  /** How to pay, while a UPI order is awaiting payment (otherwise null). */
+  upi: z
+    .object({
+      upiId: z.string(),
+      payeeName: z.string(),
+      /** `upi://pay?...` link with the amount and order number filled in. */
+      link: z.string(),
+      /** When the date is released if the customer hasn't said they've paid. */
+      payBy: z.string(),
+      /** The customer said they've paid; the baker is checking. */
+      claimed: z.boolean(),
+    })
+    .nullable(),
 });
 export type TrackedOrder = z.infer<typeof TrackedOrderSchema>;

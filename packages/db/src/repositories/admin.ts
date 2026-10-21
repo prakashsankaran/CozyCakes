@@ -2,6 +2,7 @@ import { and, asc, eq, gte, inArray, isNotNull, ne, notInArray, or } from "drizz
 import { slotLabel } from "@cozycakes/core";
 import type {
   BakerySettingsInput,
+  UpiSettingsInput,
   CakeInput,
   CakeStatus,
   DayAvailabilityInput,
@@ -327,6 +328,18 @@ export function adminRepository(db: Database) {
     },
 
     async saveSettings(input: BakerySettingsInput): Promise<void> {
+      await db
+        .insert(bakerySettings)
+        .values({ id: 1, ...input })
+        .onConflictDoUpdate({ target: bakerySettings.id, set: input });
+    },
+
+    async getUpi(): Promise<UpiSettingsInput> {
+      const [row] = await db.select().from(bakerySettings).where(eq(bakerySettings.id, 1));
+      return { upiId: row?.upiId ?? "", upiName: row?.upiName ?? "" };
+    },
+
+    async saveUpi(input: UpiSettingsInput): Promise<void> {
       await db
         .insert(bakerySettings)
         .values({ id: 1, ...input })

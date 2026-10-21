@@ -26,10 +26,10 @@ is validated against its zod schema before it is sent. Authenticated calls use t
 
 | Method & path | Purpose | Notes |
 |---------------|---------|-------|
-| `POST /api/v1/checkouts` | Create checkout: re-price cart, validate date/slot/zone, create capacity hold and provider order | Returns `checkout_id`, `amount`, provider checkout params, `expires_at`. `409 DATE_FULL` if capacity is gone; `400 INVALID_CHECKOUT` / `CART_CHANGED` / `NOT_DELIVERABLE` / `INVALID_SLOT` / `DISCOUNT_INVALID` (optional `discountCode` re-checked); `503 CHECKOUT_UNAVAILABLE` when payments are off |
+| `POST /api/v1/checkouts` | Create checkout: re-price cart, validate date/slot/zone, create capacity hold and provider order | Returns `checkout_id`, `amount`, provider checkout params, `expires_at`. `409 DATE_FULL` if capacity is gone; `400 INVALID_CHECKOUT` / `CART_CHANGED` / `NOT_DELIVERABLE` / `INVALID_SLOT` / `DISCOUNT_INVALID` (optional `discountCode` re-checked); `503 CHECKOUT_UNAVAILABLE` when payments are off. With UPI by hand the order is placed at once (status `awaiting_payment`) and the params are `{ provider: "upi", orderNumber, trackingToken }`: the client goes straight to the order page |
 | `GET /api/v1/checkouts/{id}` | Poll checkout status after payment | `open` · `paid` (+ `order_number`, `tracking_token`) · `expired` · `failed` |
 | `POST /api/v1/checkouts/{id}/payment` | `{ providerOrderId, providerPaymentId, signature }` from the provider's checkout | Signature verified; idempotent; returns the checkout status. `400 PAYMENT_NOT_VERIFIED` |
-| `GET /api/v1/checkout/config` | `{ enabled }`: whether online checkout is switched on | Off until Razorpay keys are set |
+| `GET /api/v1/checkout/config` | `{ enabled, method }`: whether online checkout is switched on, and how (`razorpay` · `upi` · `test` · null) | Off until Razorpay keys or a UPI ID are set |
 | `POST /api/v1/checkouts/{id}/test-payment` | Test provider only (`PAYMENT_PROVIDER=test`) | 404 everywhere else |
 | `POST /api/webhooks/razorpay` | Provider webhook | Signature verified; idempotent on `provider_payment_id`; creates Order in `Confirmed`, converts hold, sends notifications |
 
@@ -37,7 +37,8 @@ is validated against its zod schema before it is sent. Authenticated calls use t
 
 | Method & path | Purpose | Notes |
 |---------------|---------|-------|
-| `GET /api/v1/orders/track/{tracking_token}` | Order status timeline and details (`TrackedOrderSchema`) | No login; token is the secret. Never includes the customer's email or phone. `404 ORDER_NOT_FOUND` |
+| `GET /api/v1/orders/track/{tracking_token}` | Order status timeline and details (`TrackedOrderSchema`) | No login; token is the secret. Never includes the customer's email or phone. `upi` is `{ upiId, payeeName, link, payBy, claimed }` while a UPI order awaits payment, else null. `404 ORDER_NOT_FOUND` |
+| `POST /api/v1/orders/track/{tracking_token}/paid` | `{ reference? }` (12-digit UPI reference): the customer says they've paid a UPI order (`UpiPaidClaimSchema`) | No login. Emails the owner; doesn't confirm the order. `204`; `400 INVALID_REFERENCE`; `409 NOT_AWAITING_PAYMENT` once confirmed or released |
 | `GET /api/v1/me` | Signed-in customer's email, name, phone and saved addresses (`MeSchema`), for pre-filling checkout | Auth |
 | `GET /api/v1/me/orders` | Signed-in customer's orders, newest date first (`{orders: MyOrderSchema[]}`) | Auth. Also attaches guest orders with the same email |
 | `POST /api/v1/me/orders/{id}/reorder` | Cart lines for a past order at today's prices (`ReorderSchema`: `items`, `skipped` cake names) | Auth. `404 ORDER_NOT_FOUND` for someone else's order |
