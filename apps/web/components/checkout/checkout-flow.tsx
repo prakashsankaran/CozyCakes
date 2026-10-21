@@ -757,7 +757,15 @@ export function CheckoutFlow() {
       <div className="sticky bottom-[calc(var(--bottom-nav-height)+1.25rem)] z-20 -mx-2 rounded-[var(--radius-lg)] bg-cocoa-900 p-3 text-cream-50 shadow-[var(--shadow-lifted)] sm:bottom-4 lg:col-span-2">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <p className="min-w-0 flex-1 pl-2 text-sm text-cream-200">
-            Secure payment by UPI, card or netbanking. We never see your card.
+            Secure payment by UPI, card or netbanking. By paying you agree to the{" "}
+            <Link href="/terms" className="underline underline-offset-2">
+              terms
+            </Link>{" "}
+            and{" "}
+            <Link href="/refunds" className="underline underline-offset-2">
+              refund policy
+            </Link>
+            .
           </p>
           <button
             type="button"
