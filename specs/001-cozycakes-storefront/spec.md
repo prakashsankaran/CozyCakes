@@ -145,7 +145,7 @@ customer's tracking page and notifications reflect each change.
 3. **Given** a signed-in customer, **When** they open "My orders", **Then** they see current and
    past orders and can re-order a past cake in one tap.
 
-**As built (2026-10-21)**: scenarios 1 and 2 work; scenario 3 arrives with US6 accounts. The baker
+**As built (2026-10-21)**: all three scenarios work (scenario 3 with US6 accounts). The baker
 moves orders one step at a time from the back office orders board; the customer's page updates on
 its own and they get an email from Ready onwards. Like checkout, this only matters once online
 payments are switched on.
@@ -204,6 +204,17 @@ device, and verify both persist and pre-fill checkout.
    is created with that order attached.
 2. **Given** a signed-in customer, **When** they tap the heart on a cake, **Then** it appears in
    their favourites on every device.
+
+**As built (2026-10-21)**: both scenarios work. Customers sign in at `/me` with a 6-digit code by
+email (no passwords; the first sign-in creates the account). An account shows every order placed
+with its email, including guest orders from before it existed, and "Order again" puts a past
+order's cakes back in the cart at today's prices (cakes that can no longer be made the same way
+are named and left out). A guest's order page offers "Save my details", which sends the code only
+to the email on the order and then saves their name, mobile number and delivery address. Signed
+in, checkout fills in name, email and mobile, offers saved addresses as one-tap choices, and saves
+a new delivery address unless the customer unticks "Save this address for next time". Like the
+other emails, sign-in codes need email switched on (`RESEND_API_KEY`); until then `/me` says
+signing in isn't switched on yet.
 
 ---
 

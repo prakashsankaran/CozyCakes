@@ -38,18 +38,25 @@ is validated against its zod schema before it is sent. Authenticated calls use t
 | Method & path | Purpose | Notes |
 |---------------|---------|-------|
 | `GET /api/v1/orders/track/{tracking_token}` | Order status timeline and details (`TrackedOrderSchema`) | No login; token is the secret. Never includes the customer's email or phone. `404 ORDER_NOT_FOUND` |
-| `GET /api/v1/me/orders` | Signed-in customer's orders | Auth |
-| `POST /api/v1/me/orders/{id}/reorder` | Returns cart items for a past order, re-validated | Auth |
-| `GET/POST/DELETE /api/v1/me/favourites` | Manage favourites | Auth |
-| `GET/POST/PATCH/DELETE /api/v1/me/addresses` | Manage saved addresses | Auth |
+| `GET /api/v1/me` | Signed-in customer's email, name, phone and saved addresses (`MeSchema`), for pre-filling checkout | Auth |
+| `GET /api/v1/me/orders` | Signed-in customer's orders, newest date first (`{orders: MyOrderSchema[]}`) | Auth. Also attaches guest orders with the same email |
+| `POST /api/v1/me/orders/{id}/reorder` | Cart lines for a past order at today's prices (`ReorderSchema`: `items`, `skipped` cake names) | Auth. `404 ORDER_NOT_FOUND` for someone else's order |
+| `GET/POST/DELETE /api/v1/me/favourites` | Favourite cake ids; POST and DELETE take `{cakeId}` | Auth. All return `{cakeIds}` |
+| `GET/POST /api/v1/me/addresses`, `DELETE /api/v1/me/addresses/{id}` | Saved addresses (`SavedAddressInputSchema`) | Auth. POST `201`, or `400 INVALID_ADDRESS`; DELETE `204` |
+
+Every `/me` endpoint answers `401 SIGNED_OUT` without a customer session.
 
 ## Auth
 
+Sign-in uses Better Auth's own routes under `/api/auth/` (email one-time code; web uses its
+session cookie, the mobile app will use its bearer token). The web screens call them through Server
+Actions rather than from the browser.
+
 | Method & path | Purpose |
 |---------------|---------|
-| `POST /api/v1/auth/otp/request` | Send one-time code to email |
-| `POST /api/v1/auth/otp/verify` | Verify code, start session (cookie or bearer token) |
-| `POST /api/v1/auth/signout` | End session |
+| `POST /api/auth/email-otp/send-verification-otp` | Send a one-time code to an email (`type: "sign-in"`) |
+| `POST /api/auth/sign-in/email-otp` | Verify the code and start a session; the first sign-in creates the account |
+| `POST /api/auth/sign-out` | End session |
 
 ## Back office (role `staff` or `owner`)
 

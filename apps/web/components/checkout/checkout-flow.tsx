@@ -8,6 +8,7 @@ import {
   CheckoutCreatedSchema,
   CheckoutStatusSchema,
   DeliveryCheckSchema,
+  MeSchema,
   formatCalendarDate,
   formatMoney,
   NOTE_TO_BAKER_MAX,
@@ -18,6 +19,7 @@ import {
   type CheckoutRequest,
   type DeliveryCheck,
   type DiscountQuote,
+  type Me,
   type Fulfilment,
   type PaymentResult,
 } from "@cozycakes/core";
@@ -83,6 +85,27 @@ export function CheckoutFlow() {
   const [testCheckout, setTestCheckout] = useState<CheckoutCreated | null>(null);
   const [discount, setDiscount] = useState<DiscountQuote | null>(null);
   const [discountError, setDiscountError] = useState<string | null>(null);
+  const [me, setMe] = useState<Me | null>(null);
+  const [saveAddress, setSaveAddress] = useState(true);
+
+  // Signed-in customers get their details filled in (US6); guests see empty fields.
+  useEffect(() => {
+    const controller = new AbortController();
+    fetch("/api/v1/me", { signal: controller.signal })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const account = MeSchema.parse(await res.json());
+        setMe(account);
+        setDetails((d) => ({
+          ...d,
+          name: d.name || account.name,
+          email: d.email || account.email,
+          phone: d.phone || account.phone.replace(/^\+91/, ""),
+        }));
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, []);
   const current = useRef<{ key: string; created: CheckoutCreated } | null>(null);
 
   const leadTimeDays = quote?.leadTimeDays ?? null;
@@ -129,15 +152,15 @@ export function CheckoutFlow() {
   const setDetail = (key: keyof Details) => (value: string) =>
     setDetails((d) => ({ ...d, [key]: value }));
 
-  async function checkPin() {
-    if (!/^[1-9]\d{5}$/.test(postalCode)) {
+  async function checkPin(code = postalCode) {
+    if (!/^[1-9]\d{5}$/.test(code)) {
       setErrors((e) => ({ ...e, postalCode: "Enter a 6-digit PIN code" }));
       return;
     }
     setCheckingPin(true);
     setErrors(without("postalCode"));
     try {
-      const res = await fetch(`/api/v1/delivery/check?postal_code=${postalCode}`);
+      const res = await fetch(`/api/v1/delivery/check?postal_code=${code}`);
       setDelivery(DeliveryCheckSchema.parse(await res.json()));
     } catch {
       setErrors((e) => ({ ...e, postalCode: "We couldn't check that. Try again." }));
@@ -281,6 +304,14 @@ export function CheckoutFlow() {
     const body = request();
     if (!body) return;
     setPaying(true);
+    if (me && saveAddress && body.address) {
+      // Best effort: a saved address is a convenience, never a reason to stop someone paying.
+      void fetch("/api/v1/me/addresses", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ label: "", ...body.address }),
+      }).catch(() => {});
+    }
     const created = await openCheckout(body);
     if (!created) {
       setPaying(false);
@@ -384,13 +415,40 @@ export function CheckoutFlow() {
                 />
                 <button
                   type="button"
-                  onClick={checkPin}
+                  onClick={() => checkPin()}
                   disabled={checkingPin}
                   className="mt-1 rounded-[var(--radius-pill)] bg-cream-200 px-5 font-bold hover:bg-cream-300 disabled:opacity-60"
                 >
                   {checkingPin ? "Checking…" : "Check"}
                 </button>
               </div>
+              {me && me.addresses.length > 0 && (
+                <div className="mt-3">
+                  <p className="text-sm font-bold">Your saved addresses</p>
+                  <div className="mt-1 flex flex-wrap gap-2">
+                    {me.addresses.map((a) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        onClick={() => {
+                          setPostalCode(a.postalCode);
+                          setDetails((d) => ({
+                            ...d,
+                            line1: a.line1,
+                            line2: a.line2,
+                            landmark: a.landmark,
+                            city: a.city,
+                          }));
+                          void checkPin(a.postalCode);
+                        }}
+                        className="rounded-[var(--radius-pill)] bg-white px-4 py-2 text-sm font-bold ring-1 ring-cocoa-900/15 hover:bg-blush-100"
+                      >
+                        📍 {a.label || a.line1}, {a.postalCode}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div id="pin-result" aria-live="polite" className="mt-2 text-sm">
                 {errors.postalCode ? (
                   <p className="font-bold text-blush-700">{errors.postalCode}</p>
@@ -575,6 +633,17 @@ export function CheckoutFlow() {
                     {delivery?.postalCode ?? "Check it in step 1"}
                   </p>
                 </div>
+                {me && (
+                  <label className="flex items-center gap-2 font-bold sm:col-span-2">
+                    <input
+                      type="checkbox"
+                      checked={saveAddress}
+                      onChange={(e) => setSaveAddress(e.target.checked)}
+                      className="h-5 w-5 accent-cocoa-900"
+                    />
+                    Save this address for next time
+                  </label>
+                )}
               </>
             )}
             <Field

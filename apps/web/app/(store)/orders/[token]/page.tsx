@@ -3,9 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { formatCalendarDate, formatMoney, isFinalStatus, type OrderStatus } from "@cozycakes/core";
+import { SaveDetails } from "@/components/account/save-details";
 import { AutoRefresh } from "@/components/orders/auto-refresh";
 import { OrderTimeline } from "@/components/orders/order-timeline";
 import { StatusChip } from "@/components/orders/status-chip";
+import { currentCustomer } from "@/lib/account/session";
 import { getOrderByTrackingToken } from "@/lib/checkout/service";
 import { site } from "@/lib/site";
 
@@ -50,6 +52,7 @@ async function Order({ params }: { params: PageProps<"/orders/[token]">["params"
   const found = /^[\w-]{20,64}$/.test(token) ? await getOrderByTrackingToken(token) : null;
   if (!found) notFound();
   const { order, pickup } = found;
+  const signedIn = (await currentCustomer()) !== null;
   const firstName = order.contactName.split(" ")[0]!;
   const { headline, line } = hero(order.status, firstName, order.cancelReason);
   const celebrate = ["confirmed", "delivered", "collected"].includes(order.status);
@@ -172,6 +175,8 @@ async function Order({ params }: { params: PageProps<"/orders/[token]">["params"
           </dd>
         </dl>
       </section>
+
+      {!signedIn && order.status !== "cancelled" && <SaveDetails token={token} />}
 
       <section className="animate-rise mt-8" style={{ "--delay": "320ms" } as React.CSSProperties}>
         {order.status === "confirmed" && (
