@@ -43,6 +43,13 @@
       "when": 1792556559704,
       "tag": "0005_accounts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792563246300,
+      "tag": "0006_upi_payments",
+      "breakpoints": true
     }
   ]
 }

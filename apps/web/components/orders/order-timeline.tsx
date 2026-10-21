@@ -6,6 +6,7 @@ import {
 } from "@cozycakes/core";
 
 const EMOJI: Record<OrderStatus, string> = {
+  awaiting_payment: "📲",
   confirmed: "📒",
   baking: "🥣",
   ready: "🎂",
@@ -39,7 +40,10 @@ export function OrderTimeline({
   timeline: Array<{ status: OrderStatus; at: Date | string }>;
 }) {
   const reachedAt = new Map(timeline.map((t) => [t.status, new Date(t.at)]));
-  const journey = orderJourney(fulfilment);
+  // A UPI order paid by hand starts with its payment step.
+  const journey: OrderStatus[] = reachedAt.has("awaiting_payment")
+    ? ["awaiting_payment", ...orderJourney(fulfilment)]
+    : orderJourney(fulfilment);
   const steps =
     status === "cancelled"
       ? [...journey.filter((s) => reachedAt.has(s)), "cancelled" as const]

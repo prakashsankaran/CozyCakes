@@ -12,6 +12,7 @@ import {
   DayAvailabilityInputSchema,
   DeliveryZoneInputSchema,
   TimeSlotInputSchema,
+  UpiSettingsInputSchema,
   DiscountCodeInputSchema,
   MoveOrderInputSchema,
   OptionGroupInputSchema,
@@ -23,6 +24,7 @@ import {
   type CancelOrderInput,
   type DeliveryZoneInput,
   type TimeSlotInput,
+  type UpiSettingsInput,
   type DiscountCodeInput,
   type MoveOrderInput,
   type OptionGroupInput,
@@ -176,6 +178,17 @@ export async function saveSettings(input: BakerySettingsInput): Promise<ActionRe
     return failure(error);
   }
   updateTag("catalog");
+  return { ok: true };
+}
+
+/** The UPI ID customers pay into by hand; setting one switches checkout on (research.md §6). */
+export async function saveUpi(input: UpiSettingsInput): Promise<ActionResult> {
+  await requireOwner();
+  try {
+    await repo().saveUpi(UpiSettingsInputSchema.parse(input));
+  } catch (error) {
+    return failure(error);
+  }
   return { ok: true };
 }
 

@@ -25,7 +25,7 @@ import {
 } from "@cozycakes/core";
 import { cart, useCart } from "@/lib/cart/store";
 import { useCartQuote } from "@/lib/cart/use-quote";
-import { useCheckoutEnabled } from "@/lib/checkout/use-checkout-enabled";
+import { useCheckoutConfig } from "@/lib/checkout/use-checkout-enabled";
 import { loadRazorpay } from "@/lib/checkout/razorpay";
 import { DatePicker } from "./date-picker";
 import { DiscountField } from "./discount-field";
@@ -69,7 +69,9 @@ export function CheckoutFlow() {
   const router = useRouter();
   const items = useCart();
   const { quote, status: quoteStatus } = useCartQuote(items);
-  const enabled = useCheckoutEnabled();
+  const config = useCheckoutConfig();
+  const enabled = config?.enabled ?? null;
+  const byUpi = config?.method === "upi";
 
   const [fulfilment, setFulfilment] = useState<Fulfilment | null>(null);
   const [postalCode, setPostalCode] = useState("");
@@ -319,6 +321,12 @@ export function CheckoutFlow() {
     }
     if (created.payment.provider === "test") {
       setTestCheckout(created);
+      return;
+    }
+    if (created.payment.provider === "upi") {
+      // The order exists, awaiting payment; its page shows the QR code and UPI ID.
+      cart.clear();
+      router.push(`/orders/${created.payment.trackingToken}?placed=1`);
       return;
     }
     try {
@@ -757,7 +765,9 @@ export function CheckoutFlow() {
       <div className="sticky bottom-[calc(var(--bottom-nav-height)+1.25rem)] z-20 -mx-2 rounded-[var(--radius-lg)] bg-cocoa-900 p-3 text-cream-50 shadow-[var(--shadow-lifted)] sm:bottom-4 lg:col-span-2">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <p className="min-w-0 flex-1 pl-2 text-sm text-cream-200">
-            Secure payment by UPI, card or netbanking. By paying you agree to the{" "}
+            {byUpi
+              ? "Next you pay by UPI with any app. By placing your order you agree to the "
+              : "Secure payment by UPI, card or netbanking. By paying you agree to the "}
             <Link href="/terms" className="underline underline-offset-2">
               terms
             </Link>{" "}
@@ -773,7 +783,11 @@ export function CheckoutFlow() {
             disabled={paying || blocked || enabled === null || !quote}
             className="rounded-[var(--radius-pill)] bg-blush-400 px-6 py-3 font-bold text-cocoa-900 transition-transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-60"
           >
-            {paying ? "Opening payment…" : `Pay ${formatMoney(total)}`}
+            {paying
+              ? byUpi
+                ? "Placing your order…"
+                : "Opening payment…"
+              : `${byUpi ? "Place order" : "Pay"} ${formatMoney(total)}`}
           </button>
         </div>
         {formError && (

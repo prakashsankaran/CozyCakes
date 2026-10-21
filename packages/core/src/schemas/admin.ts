@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { isCalendarDate } from "../dates";
 import { PhotoSchema } from "./catalog";
+import { UPI_ID_PATTERN } from "../payments";
 
 /**
  * Back-office inputs (US5, FR-021/FR-022). The web back office and the future `/api/v1/admin/*`
@@ -99,6 +100,21 @@ export const BakerySettingsInputSchema = z.object({
   pickupInstructions: z.string().trim().max(300),
 });
 export type BakerySettingsInput = z.infer<typeof BakerySettingsInputSchema>;
+
+/** Where customers pay by UPI when there's no payment gateway (research.md §6). */
+export const UpiSettingsInputSchema = z.object({
+  /** Empty switches UPI checkout off. */
+  upiId: z
+    .string()
+    .trim()
+    .refine(
+      (v) => v === "" || UPI_ID_PATTERN.test(v),
+      "That doesn't look like a UPI ID (name@bank)",
+    ),
+  /** The name customers see in their UPI app. */
+  upiName: z.string().trim().max(60),
+});
+export type UpiSettingsInput = z.infer<typeof UpiSettingsInputSchema>;
 
 export const DayAvailabilityInputSchema = z.object({
   date: z.string().refine(isCalendarDate, "Pick a valid date"),

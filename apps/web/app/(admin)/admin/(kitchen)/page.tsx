@@ -3,9 +3,11 @@ import { Suspense } from "react";
 import { formatCalendarDate, todayIn } from "@cozycakes/core";
 import { adminRepository, getDb, ordersRepository } from "@cozycakes/db";
 import { Card, LoadingCards, PageTitle, buttonClass } from "@/components/admin/ui";
+import { UpiForm } from "@/components/admin/upi-form";
 import { requireOwner } from "@/lib/admin/dal";
 import { emailConfigured } from "@/lib/email";
-import { checkoutEnabled } from "@/lib/checkout/payments";
+import { checkoutMethod } from "@/lib/checkout/payments";
+import { releaseUnpaidOrders } from "@/lib/checkout/service";
 import { uploadsEnabled } from "@/lib/uploads";
 
 export default function KitchenHome() {
@@ -22,7 +24,13 @@ export default function KitchenHome() {
 async function Overview() {
   await requireOwner();
   const repo = adminRepository(getDb());
-  const [cakes, settings] = await Promise.all([repo.listCakes(), repo.getSettings()]);
+  await releaseUnpaidOrders();
+  const [cakes, settings, upi, method] = await Promise.all([
+    repo.listCakes(),
+    repo.getSettings(),
+    repo.getUpi(),
+    checkoutMethod(),
+  ]);
   const today = todayIn(settings.timeZone);
   const [days, upcoming] = await Promise.all([
     repo.listDays(today),
@@ -31,6 +39,7 @@ async function Overview() {
   const open = upcoming.filter((o) => o.status !== "cancelled");
   const todays = open.filter((o) => o.date === today).length;
   const toStart = open.filter((o) => o.status === "confirmed").length;
+  const unpaid = open.filter((o) => o.status === "awaiting_payment").length;
   const onMenu = cakes.filter((c) => c.status === "visible").length;
   const paused = cakes.filter((c) => c.status === "paused").length;
   const drafts = cakes.filter((c) => c.status === "draft").length;
@@ -39,7 +48,11 @@ async function Overview() {
   const setup = [
     { label: "Sign-in emails", done: emailConfigured(), hint: "RESEND_API_KEY" },
     { label: "Cake photo uploads", done: uploadsEnabled(), hint: "CLOUDINARY_URL" },
-    { label: "Online payments", done: checkoutEnabled(), hint: "RAZORPAY_KEY_ID and _SECRET" },
+    {
+      label: method === "upi" ? "Payments by UPI" : "Online payments",
+      done: method !== null,
+      hint: "add your UPI ID below",
+    },
   ];
 
   return (
@@ -79,9 +92,9 @@ async function Overview() {
         <h2 className="font-display text-2xl font-semibold">Orders</h2>
         <p className="mt-2 text-cocoa-700">
           {open.length
-            ? `${todays} for today · ${toStart} not started yet · ${open.length} coming up`
-            : checkoutEnabled()
-              ? "No orders coming up yet. New paid orders appear here and in your inbox."
+            ? `${todays} for today · ${toStart} not started yet${unpaid ? ` · ${unpaid} awaiting payment` : ""} · ${open.length} coming up`
+            : method
+              ? "No orders coming up yet. New orders appear here and in your inbox."
               : "Customers send their cart to you on Instagram until online payments are switched on."}
         </p>
         <Link href="/admin/orders" className={`${buttonClass.soft} mt-4`}>
@@ -112,6 +125,8 @@ async function Overview() {
           ))}
         </ul>
       </Card>
+
+      <UpiForm settings={upi} gateway={method === "razorpay"} />
     </div>
   );
 }

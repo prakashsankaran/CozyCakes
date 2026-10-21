@@ -61,7 +61,9 @@ so the cart renders offline; it is never sent for pricing.
 
 `time_zone` (default `Asia/Kolkata`), `currency` (default `INR`), `default_daily_capacity` (int,
 default 3), `pickup_address`, `pickup_instructions`, `booking_window_days` (default 60),
-`hold_minutes` (default 15), `sample_menu_version` (int, default 0: which placeholder menu
+`hold_minutes` (default 15), `upi_id` and `upi_name` (text, default empty: the UPI ID customers
+pay into by hand and the payee name their app shows; an empty `upi_id` means no UPI checkout,
+research.md §6), `sample_menu_version` (int, default 0: which placeholder menu
 `db:seed` last loaded; deploys reload the sample menu when it is older than the code's; `-1` once
 the owner edits the menu in the back office, after which deploys never touch the catalog).
 
@@ -168,13 +170,17 @@ Append-only (Principle IV).
 
 ### Payment
 
-`order_id`/`checkout_id`, `provider` (`razorpay`), `provider_payment_id` (unique → idempotency),
-`amount`, `status` (`created` · `captured` · `failed` · `refunded` · `partially_refunded`),
-`raw_event` (json).
+`order_id`/`checkout_id`, `provider` (`razorpay` · `upi` · `test`), `provider_payment_id` (unique →
+idempotency; `upi_<order id>` for UPI), `amount`, `status` (`created` · `captured` · `failed` ·
+`refunded` · `partially_refunded`), `raw_event` (json), `reference` (text?, the UPI reference the
+customer typed) and `claimed_at` (timestamptz?, when they said they'd paid). A UPI payment is
+`created` while the order awaits payment, `captured` when the owner taps "Payment received", and
+`failed` if the order is cancelled first.
 
 ### Refund
 
-`payment_id`, `amount`, `provider_refund_id`, `status`, `reason`.
+`payment_id`, `amount`, `provider_refund_id`, `status` (`manual` for a UPI payment the owner
+sends back by hand), `reason`.
 
 ### DiscountCode
 
@@ -199,11 +205,17 @@ uploads older than 7 days are deleted.
              ┌──────────────────────── cancel (staff, with reason → refund) ───────────────┐
              │                                                                             ▼
 Confirmed ──► Baking ──► Ready ──► Out for delivery ──► Delivered                      Cancelled
+    ▲
+Awaiting payment (UPI by hand; "Payment received")
                           │
                           └──────► Ready for pickup ──► Collected
 ```
 
-- Orders are created directly in `Confirmed` by the verified payment webhook (no unpaid orders).
+- Orders paid through a gateway are created directly in `Confirmed` once the payment is verified.
+  Orders paid by UPI by hand start in `Awaiting payment` (holding their date) and move to
+  `Confirmed` when staff tap "Payment received"; one unclaimed for an hour is cancelled
+  automatically (research.md §6). `Awaiting payment` is never a forward move target, and the
+  customer hears about leaving it (confirmation email) but not entering it from a status move.
 - `Ready → Out for delivery` only when `fulfilment = delivery`; `Ready → Ready for pickup` only
   when `fulfilment = pickup`.
 - `Cancelled` is reachable from any non-final state; `Delivered`, `Collected`, `Cancelled` are

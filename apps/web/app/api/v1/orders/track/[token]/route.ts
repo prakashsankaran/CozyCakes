@@ -7,7 +7,7 @@ export async function GET(_request: Request, ctx: RouteContext<"/api/v1/orders/t
   const { token } = await ctx.params;
   const found = /^[\w-]{20,64}$/.test(token) ? await getOrderByTrackingToken(token) : null;
   if (!found) return apiError(404, "ORDER_NOT_FOUND", "We couldn't find that order");
-  const { order, pickup } = found;
+  const { order, pickup, upi } = found;
   return apiJson(TrackedOrderSchema, {
     number: order.number,
     status: order.status,
@@ -24,5 +24,6 @@ export async function GET(_request: Request, ctx: RouteContext<"/api/v1/orders/t
     discount: order.discount,
     total: order.total,
     timeline: order.timeline.map((t) => ({ status: t.status, at: t.at.toISOString() })),
+    upi: upi && { ...upi, payBy: upi.payBy.toISOString() },
   });
 }

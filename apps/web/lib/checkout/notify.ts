@@ -30,7 +30,7 @@ function when(snapshot: CheckoutSnapshot) {
   return `${how} on ${formatCalendarDate(snapshot.date)}, ${snapshot.slotLabel}`;
 }
 
-function totals(snapshot: CheckoutSnapshot): string[] {
+function totals(snapshot: CheckoutSnapshot, paid = true): string[] {
   return [
     `Subtotal: ${formatMoney(snapshot.subtotal)}`,
     ...(snapshot.deliveryFee ? [`Delivery: ${formatMoney(snapshot.deliveryFee)}`] : []),
@@ -39,8 +39,15 @@ function totals(snapshot: CheckoutSnapshot): string[] {
           `Discount${snapshot.discountCode ? ` (${snapshot.discountCode})` : ""}: −${formatMoney(snapshot.discount)}`,
         ]
       : []),
-    `Paid: ${formatMoney(snapshot.total)}`,
+    `${paid ? "Paid" : "To pay by UPI"}: ${formatMoney(snapshot.total)}`,
   ];
+}
+
+function owners() {
+  return (process.env.OWNER_EMAIL ?? "")
+    .split(",")
+    .map((e) => e.trim())
+    .filter(Boolean);
 }
 
 function html(heading: string, paragraphs: string[], link?: { href: string; label: string }) {
@@ -80,37 +87,97 @@ export function customerConfirmationEmail(order: Placed, origin: string): Email 
   };
 }
 
-export function ownerNewOrderEmail(order: Placed, to: string): Email {
+/** A UPI order placed but not yet paid: the date is held while the customer pays. */
+export function customerAwaitingPaymentEmail(order: Placed, origin: string): Email {
   const { snapshot } = order;
+  const link = `${origin}/orders/${order.trackingToken}`;
   const paragraphs = [
+    `Hi ${snapshot.contact.name}, thank you! I'm holding ${formatCalendarDate(snapshot.date)} for order ${order.number}. Pay ${formatMoney(snapshot.total)} by UPI from your order page and I'll confirm it as soon as I see the money.`,
     when(snapshot),
     itemLines(snapshot).join("\n"),
-    totals(snapshot).join("\n"),
+  ];
+  return {
+    to: snapshot.contact.email,
+    subject: `Your CozyCakes order ${order.number}: pay by UPI to confirm`,
+    text: [...paragraphs, `Pay and follow your order: ${link}`].join("\n\n"),
+    html: html(`Order ${order.number} is waiting for payment`, paragraphs, {
+      href: link,
+      label: "Pay by UPI",
+    }),
+  };
+}
+
+export function ownerNewOrderEmail(order: Placed, to: string, awaitingPayment = false): Email {
+  const { snapshot } = order;
+  const paragraphs = [
+    ...(awaitingPayment
+      ? [
+          `Waiting for a UPI payment of ${formatMoney(snapshot.total)}. When it reaches your account, open the order and tap "Payment received". If nobody says they've paid within the hour, the date is freed again.`,
+        ]
+      : []),
+    when(snapshot),
+    itemLines(snapshot).join("\n"),
+    totals(snapshot, !awaitingPayment).join("\n"),
     `${snapshot.contact.name} · ${snapshot.contact.phone} · ${snapshot.contact.email}`,
     ...(snapshot.note ? [`Note: ${snapshot.note}`] : []),
   ];
   return {
     to,
-    subject: `New order ${order.number}: ${formatCalendarDate(snapshot.date)}`,
+    subject: `New order ${order.number}: ${formatCalendarDate(snapshot.date)}${awaitingPayment ? " (awaiting UPI payment)" : ""}`,
     text: paragraphs.join("\n\n"),
     html: html(`New order ${order.number}`, paragraphs),
   };
 }
 
-export async function sendOrderEmails(order: Placed, origin: string) {
+export async function sendOrderEmails(
+  order: Placed,
+  origin: string,
+  { awaitingPayment = false }: { awaitingPayment?: boolean } = {},
+) {
   if (!emailConfigured()) {
     console.warn(`Order ${order.number} placed, but email isn't set up (RESEND_API_KEY)`);
     return;
   }
-  const owners = (process.env.OWNER_EMAIL ?? "")
-    .split(",")
-    .map((e) => e.trim())
-    .filter(Boolean);
   const emails = [
-    customerConfirmationEmail(order, origin),
-    ...owners.map((to) => ownerNewOrderEmail(order, to)),
+    awaitingPayment
+      ? customerAwaitingPaymentEmail(order, origin)
+      : customerConfirmationEmail(order, origin),
+    ...owners().map((to) => ownerNewOrderEmail(order, to, awaitingPayment)),
   ];
   const results = await Promise.allSettled(emails.map(sendEmail));
+  for (const r of results) if (r.status === "rejected") console.error(r.reason);
+}
+
+/** The customer says they've paid a UPI order: the owner checks their UPI app. */
+export function ownerUpiClaimEmail(
+  claim: { number: string; total: number; date: string; reference: string },
+  to: string,
+): Email {
+  const paragraphs = [
+    `The customer says they've paid ${formatMoney(claim.total)} by UPI for ${claim.number} (${formatCalendarDate(claim.date)}).`,
+    claim.reference
+      ? `UPI reference: ${claim.reference}`
+      : "They didn't add a UPI reference; look for the amount in your UPI app.",
+    `Once you see it, open the order in your back office and tap "Payment received".`,
+  ];
+  return {
+    to,
+    subject: `${claim.number}: customer says they've paid ${formatMoney(claim.total)}`,
+    text: paragraphs.join("\n\n"),
+    html: html(`Check your UPI app for ${claim.number}`, paragraphs),
+  };
+}
+
+export async function sendUpiClaimEmail(claim: {
+  number: string;
+  total: number;
+  date: string;
+  reference: string;
+}) {
+  if (!emailConfigured()) return;
+  const results = await Promise.allSettled(
+    owners().map((to) => sendEmail(ownerUpiClaimEmail(claim, to))),
+  );
   for (const r of results) if (r.status === "rejected") console.error(r.reason);
 }
 
@@ -123,9 +190,12 @@ type Moved = {
   slotLabel: string;
   status: OrderStatus;
   cancelReason: string | null;
+  /** Where the order moved from, when it just moved. */
+  from?: OrderStatus;
 };
 
 const STATUS_SUBJECTS: Partial<Record<OrderStatus, string>> = {
+  confirmed: "is confirmed 🎂",
   ready: "is ready 🎂",
   out_for_delivery: "is on its way 🛵",
   ready_for_pickup: "is ready to collect 🏡",
@@ -144,9 +214,11 @@ export function orderStatusEmail(order: Moved, origin: string, refunded: boolean
       ? [
           `Hi ${order.contact.name}, I'm so sorry: I've had to cancel order ${order.number}.`,
           ...(order.cancelReason ? [`Why: ${order.cancelReason}`] : []),
-          refunded
-            ? "Your payment is being refunded to the way you paid. Banks usually take 5 to 7 working days."
-            : "I'll be in touch about your payment.",
+          order.from === "awaiting_payment"
+            ? "No payment was taken for this order."
+            : refunded
+              ? "Your payment is being refunded to the way you paid. Banks usually take 5 to 7 working days."
+              : "I'll be in touch about your payment.",
         ]
       : [`Hi ${order.contact.name}, ${copy.customer}`, when];
   return {
@@ -160,8 +232,16 @@ export function orderStatusEmail(order: Moved, origin: string, refunded: boolean
   };
 }
 
+/** Whether the customer hears about this move: a UPI payment received counts as confirmation. */
+function tellsCustomer(order: Moved) {
+  return (
+    notifiesCustomer(order.status) ||
+    (order.status === "confirmed" && order.from === "awaiting_payment")
+  );
+}
+
 export async function sendOrderStatusEmail(order: Moved, origin: string, refunded = false) {
-  if (!notifiesCustomer(order.status)) return;
+  if (!tellsCustomer(order)) return;
   if (!emailConfigured()) {
     console.warn(`Order ${order.number} is ${order.status}, but email isn't set up`);
     return;

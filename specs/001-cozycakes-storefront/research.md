@@ -84,6 +84,22 @@ latest stable releases at implementation time unless a task says otherwise.
   refunds API (`POST /v1/payments/{id}/refund`, normal speed). The refund is attempted after the
   cancellation is saved, so a refused refund never leaves a paid order stuck; the owner is told to
   refund it from the Razorpay dashboard.
+- **UPI without a gateway (2026-10-21)**: Razorpay sign-up asks for the owner's PAN, which the
+  owner declined to give, so checkout can instead take UPI payments by hand: no gateway, fees or
+  KYC. The owner enters a UPI ID and payee name on the back office's Today page; checkout is on
+  when Razorpay keys are set (preferred) or a UPI ID is. Placing a UPI order creates it straight
+  away as `awaiting_payment` (the capacity hold converts, so the date stays held) plus a `created`
+  payment row (`provider = upi`). The order page renders a `upi://pay` link (NPCI deep-link format:
+  `pa`, `pn`, `am` in rupees, `cu=INR`, `tn` = order number) and the same link as a QR code (SVG,
+  `qrcode` package). "I've paid" records `claimed_at` and an optional reference and emails the
+  owner; "Payment received" moves the order to Confirmed, marks the payment captured and sends
+  the customer their confirmation. Unclaimed orders older than `UPI_PAY_MINUTES` (60) are
+  cancelled lazily whenever availability, checkout, the order page or the back office loads (no
+  cron needed). Cancelling a paid UPI order records a `manual` refund and tells the owner to send
+  the money back from their UPI app. Trade-off: payment isn't verified automatically, so the
+  owner must check their UPI app; adding Razorpay keys later switches checkout back to the gateway.
+  End-to-end tests reach UPI mode with the `x-cozycakes-test-payments: off` header, honoured only
+  while the test provider is on.
 
 ## 7. Preventing overbooking
 

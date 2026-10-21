@@ -1,4 +1,4 @@
-import { and, asc, eq, gt, gte, isNull, lte, ne, sql } from "drizzle-orm";
+import { and, asc, eq, gt, gte, inArray, isNull, lt, lte, ne, sql } from "drizzle-orm";
 import {
   dayStatus,
   type AvailabilityRules,
@@ -40,6 +40,9 @@ export type BakeryRules = {
   holdMinutes: number;
   pickupAddress: string;
   pickupInstructions: string;
+  /** Empty when the baker hasn't set up UPI payments by hand. */
+  upiId: string;
+  upiName: string;
 };
 
 export type ConfirmedOrder = {
@@ -69,6 +72,8 @@ export type OrderView = {
   total: number;
   createdAt: Date;
   cancelReason: string | null;
+  /** The customer said they've paid by UPI and the baker hasn't confirmed it yet. */
+  upiClaimed: boolean;
   /** Each status reached, oldest first. */
   timeline: Array<{ status: typeof orders.$inferSelect.status; at: Date }>;
   items: Array<{
@@ -90,6 +95,75 @@ function newTrackingToken() {
 }
 
 /**
+ * Turns a checkout into an order: its cakes, its first status, the discount's use and the date's
+ * place, which stops being a hold and becomes the order's.
+ */
+async function createOrder(
+  tx: Tx,
+  checkoutId: string,
+  snapshot: CheckoutSnapshot,
+  status: "confirmed" | "awaiting_payment",
+) {
+  const [{ n }] = (await tx.execute(
+    sql`select nextval(${orderNumberSeq.seqName})::int as n`,
+  )) as unknown as [{ n: number }];
+  const [order] = await tx
+    .insert(orders)
+    .values({
+      number: `CC-${n}`,
+      trackingToken: newTrackingToken(),
+      checkoutId,
+      contact: snapshot.contact,
+      fulfilment: snapshot.fulfilment,
+      date: snapshot.date,
+      slotId: snapshot.slotId,
+      slotLabel: snapshot.slotLabel,
+      address: snapshot.address,
+      noteToBaker: snapshot.note,
+      subtotal: snapshot.subtotal,
+      deliveryFee: snapshot.deliveryFee,
+      discount: snapshot.discount,
+      discountCodeId: snapshot.discountCodeId ?? null,
+      total: snapshot.total,
+      status,
+    })
+    .returning();
+  if (snapshot.discountCodeId) {
+    // Counted once the order exists; a code may go one over its limit if two customers
+    // pay for its last use at the same moment (research.md §17).
+    await tx
+      .update(discountCodes)
+      .set({ redemptions: sql`${discountCodes.redemptions} + 1` })
+      .where(eq(discountCodes.id, snapshot.discountCodeId));
+  }
+  await tx.insert(orderItems).values(
+    snapshot.lines.map((l) => ({
+      orderId: order!.id,
+      cakeId: l.cakeId,
+      cakeName: l.cakeName,
+      sizeLabel: l.sizeLabel,
+      options: l.options,
+      message: l.message,
+      referencePhotoUrl: l.referencePhotoUrl,
+      unitPrice: l.unitPrice,
+      quantity: l.quantity,
+      lineTotal: l.lineTotal,
+    })),
+  );
+  await tx.insert(orderStatusEvents).values({
+    orderId: order!.id,
+    fromStatus: null,
+    toStatus: status,
+    note: status === "confirmed" ? "Payment received" : "Waiting for UPI payment",
+  });
+  await tx
+    .update(capacityHolds)
+    .set({ convertedAt: new Date() })
+    .where(eq(capacityHolds.checkoutId, checkoutId));
+  return order!;
+}
+
+/**
  * Availability, checkouts and order creation (US3, research.md §7). A date's capacity is checked
  * and held in one transaction that locks that date's `day_availability` row, so two customers can
  * never take the last place at the same time.
@@ -104,6 +178,8 @@ export function checkoutRepository(db: Database) {
       holdMinutes: row?.holdMinutes ?? 15,
       pickupAddress: row?.pickupAddress ?? "",
       pickupInstructions: row?.pickupInstructions ?? "",
+      upiId: row?.upiId ?? "",
+      upiName: row?.upiName ?? "",
     };
   }
 
@@ -312,71 +388,13 @@ export function checkoutRepository(db: Database) {
         }
 
         const already = checkout.status === "paid" ? await existingOrder() : undefined;
-        let order = already;
-        if (!order) {
-          const [{ n }] = (await tx.execute(
-            sql`select nextval(${orderNumberSeq.seqName})::int as n`,
-          )) as unknown as [{ n: number }];
-          [order] = await tx
-            .insert(orders)
-            .values({
-              number: `CC-${n}`,
-              trackingToken: newTrackingToken(),
-              checkoutId: checkout.id,
-              contact: snapshot.contact,
-              fulfilment: snapshot.fulfilment,
-              date: snapshot.date,
-              slotId: snapshot.slotId,
-              slotLabel: snapshot.slotLabel,
-              address: snapshot.address,
-              noteToBaker: snapshot.note,
-              subtotal: snapshot.subtotal,
-              deliveryFee: snapshot.deliveryFee,
-              discount: snapshot.discount,
-              discountCodeId: snapshot.discountCodeId ?? null,
-              total: snapshot.total,
-              status: "confirmed",
-            })
-            .returning();
-          if (snapshot.discountCodeId) {
-            // Counted once the order exists; a code may go one over its limit if two customers
-            // pay for its last use at the same moment (research.md §17).
-            await tx
-              .update(discountCodes)
-              .set({ redemptions: sql`${discountCodes.redemptions} + 1` })
-              .where(eq(discountCodes.id, snapshot.discountCodeId));
-          }
-          await tx.insert(orderItems).values(
-            snapshot.lines.map((l) => ({
-              orderId: order!.id,
-              cakeId: l.cakeId,
-              cakeName: l.cakeName,
-              sizeLabel: l.sizeLabel,
-              options: l.options,
-              message: l.message,
-              referencePhotoUrl: l.referencePhotoUrl,
-              unitPrice: l.unitPrice,
-              quantity: l.quantity,
-              lineTotal: l.lineTotal,
-            })),
-          );
-          await tx.insert(orderStatusEvents).values({
-            orderId: order!.id,
-            fromStatus: null,
-            toStatus: "confirmed",
-            note: "Payment received",
-          });
-          await tx
-            .update(capacityHolds)
-            .set({ convertedAt: new Date() })
-            .where(eq(capacityHolds.checkoutId, checkout.id));
-          await tx.update(checkouts).set({ status: "paid" }).where(eq(checkouts.id, checkout.id));
-        }
+        const order = already ?? (await createOrder(tx, checkout.id, snapshot, "confirmed"));
+        await tx.update(checkouts).set({ status: "paid" }).where(eq(checkouts.id, checkout.id));
 
         if (!seen) {
           await tx.insert(payments).values({
             checkoutId: checkout.id,
-            orderId: order!.id,
+            orderId: order.id,
             provider: input.provider,
             providerPaymentId: input.providerPaymentId,
             amount: input.amount ?? snapshot.total,
@@ -386,19 +404,122 @@ export function checkoutRepository(db: Database) {
         }
 
         return {
-          orderId: order!.id,
-          number: order!.number,
-          trackingToken: order!.trackingToken,
+          orderId: order.id,
+          number: order.number,
+          trackingToken: order.trackingToken,
           created: !already,
           snapshot,
         };
       });
     },
 
+    /**
+     * UPI paid by hand (research.md §6): the order exists straight away, awaiting payment, and
+     * keeps the date's place while the customer pays. A `created` payment row waits for the baker.
+     */
+    async placeUnpaidOrder(checkoutId: string): Promise<ConfirmedOrder> {
+      return db.transaction(async (tx) => {
+        const [checkout] = await tx
+          .select()
+          .from(checkouts)
+          .where(and(eq(checkouts.id, checkoutId), eq(checkouts.status, "open")))
+          .for("update");
+        if (!checkout) throw new CheckoutNotFoundError(checkoutId);
+        const snapshot = checkout.snapshot as CheckoutSnapshot;
+        const order = await createOrder(tx, checkout.id, snapshot, "awaiting_payment");
+        await tx.update(checkouts).set({ status: "paid" }).where(eq(checkouts.id, checkout.id));
+        await tx.insert(payments).values({
+          checkoutId: checkout.id,
+          orderId: order.id,
+          provider: "upi",
+          providerPaymentId: `upi_${order.id}`,
+          amount: snapshot.total,
+          status: "created",
+        });
+        return {
+          orderId: order.id,
+          number: order.number,
+          trackingToken: order.trackingToken,
+          created: true,
+          snapshot,
+        };
+      });
+    },
+
+    /**
+     * The customer says they've paid by UPI. Null when the order isn't waiting for a UPI payment
+     * (already confirmed, or released for want of one).
+     */
+    async claimUpiPayment(token: string, reference: string) {
+      return db.transaction(async (tx) => {
+        const [order] = await tx
+          .select()
+          .from(orders)
+          .where(and(eq(orders.trackingToken, token), eq(orders.status, "awaiting_payment")))
+          .for("update");
+        if (!order) return null;
+        const [payment] = await tx
+          .update(payments)
+          .set({ claimedAt: new Date(), reference: reference || null, updatedAt: new Date() })
+          .where(
+            and(
+              eq(payments.orderId, order.id),
+              eq(payments.provider, "upi"),
+              eq(payments.status, "created"),
+            ),
+          )
+          .returning();
+        return payment ? { number: order.number, total: order.total, date: order.date } : null;
+      });
+    },
+
+    /**
+     * Gives back the dates of UPI orders nobody said they'd paid for by `cutoff` (their place
+     * would otherwise stay taken forever). Returns the order numbers released.
+     */
+    async releaseUnpaidOrders(cutoff: Date): Promise<string[]> {
+      return db.transaction(async (tx) => {
+        const stale = await tx
+          .select({ id: orders.id, number: orders.number })
+          .from(orders)
+          .innerJoin(payments, eq(payments.orderId, orders.id))
+          .where(
+            and(
+              eq(orders.status, "awaiting_payment"),
+              lt(orders.createdAt, cutoff),
+              eq(payments.provider, "upi"),
+              isNull(payments.claimedAt),
+            ),
+          )
+          .for("update", { of: orders, skipLocked: true });
+        if (stale.length === 0) return [];
+        const ids = stale.map((o) => o.id);
+        const reason =
+          "No UPI payment arrived within the hour, so I let the date go. If you did pay, message me and I'll sort it out.";
+        await tx
+          .update(orders)
+          .set({ status: "cancelled", cancelReason: reason, updatedAt: new Date() })
+          .where(inArray(orders.id, ids));
+        await tx
+          .update(payments)
+          .set({ status: "failed", updatedAt: new Date() })
+          .where(and(inArray(payments.orderId, ids), eq(payments.status, "created")));
+        await tx.insert(orderStatusEvents).values(
+          ids.map((orderId) => ({
+            orderId,
+            fromStatus: "awaiting_payment" as const,
+            toStatus: "cancelled" as const,
+            note: reason,
+          })),
+        );
+        return stale.map((o) => o.number);
+      });
+    },
+
     async orderByTrackingToken(token: string): Promise<OrderView | null> {
       const [order] = await db.select().from(orders).where(eq(orders.trackingToken, token));
       if (!order) return null;
-      const [items, events] = await Promise.all([
+      const [items, events, [claim]] = await Promise.all([
         db
           .select()
           .from(orderItems)
@@ -409,6 +530,17 @@ export function checkoutRepository(db: Database) {
           .from(orderStatusEvents)
           .where(eq(orderStatusEvents.orderId, order.id))
           .orderBy(asc(orderStatusEvents.createdAt)),
+        db
+          .select({ claimedAt: payments.claimedAt })
+          .from(payments)
+          .where(
+            and(
+              eq(payments.orderId, order.id),
+              eq(payments.provider, "upi"),
+              eq(payments.status, "created"),
+            ),
+          )
+          .limit(1),
       ]);
       return {
         number: order.number,
@@ -427,6 +559,7 @@ export function checkoutRepository(db: Database) {
         total: order.total,
         createdAt: order.createdAt,
         cancelReason: order.cancelReason,
+        upiClaimed: Boolean(claim?.claimedAt),
         timeline: events,
         items: items.map((i) => ({
           cakeName: i.cakeName,
