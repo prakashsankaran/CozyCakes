@@ -80,7 +80,14 @@ int), `blocked` (bool), `note`. Used as the lock row for capacity checks.
 
 ### CapacityHold
 
-`id`, `date`, `checkout_id`, `expires_at`. Counted against capacity until expired or converted.
+`id`, `date`, `checkout_id`, `expires_at`, `converted_at`. Counted against capacity until expired
+or converted.
+
+### Checkout
+
+`id`, `snapshot` (priced lines with option prices, fulfilment, date, slot, contact, address, note,
+subtotal, delivery fee, total; copied onto the order), `hold_id`, `payment_provider_order_id`
+(unique), `status` (`open` · `paid` · `expired` · `failed`), `expires_at`.
 
 **Availability rules**
 
@@ -122,12 +129,13 @@ fulfilment details, contact details, `hold_id`, `payment_provider_order_id`, `st
 | Field | Type | Rules |
 |-------|------|-------|
 | id | uuid | |
-| number | text | human-friendly, unique, e.g., `CC-24017` |
+| number | text | human-friendly, unique, e.g., `CC-24017` (from the `order_number_seq` sequence, starting at 24001) |
 | tracking_token | text | unguessable (≥ 128-bit), used in the private tracking link |
 | user_id | uuid? | null for guests |
 | contact | {name, email, phone} | required |
 | fulfilment | enum | `delivery` · `pickup` |
 | date / slot_id | date / uuid | |
+| slot_label | text | the slot as the customer saw it |
 | address | Address snapshot? | required for delivery |
 | note_to_baker | text | ≤ 500 chars |
 | subtotal, delivery_fee, discount, total | int | minor units; `total = subtotal + delivery_fee − discount` |

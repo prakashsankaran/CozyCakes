@@ -1,24 +1,12 @@
-import { expect, test, type Page, type TestInfo } from "@playwright/test";
+import { expect, test, type TestInfo } from "@playwright/test";
 import { expectAccessible } from "./a11y";
-import { emailsTo, latestCode, ownerEmailFor } from "./outbox";
+import { emailsTo, ownerEmailFor, signInAsOwner } from "./outbox";
 
 // US5: The owner runs the shop from the back office. Each browser project signs in as its own
 // owner (see playwright.config.ts) and names what it creates uniquely, so runs never collide and
 // the sample cakes other tests rely on stay untouched.
 
 test.describe.configure({ mode: "serial" });
-
-async function signIn(page: Page, testInfo: TestInfo) {
-  const email = ownerEmailFor(testInfo.project.name);
-  const since = Date.now();
-  await page.goto("/admin/sign-in");
-  await page.getByLabel("Email").fill(email);
-  await page.getByRole("button", { name: "Email me a code" }).click();
-  await expect(page.getByText("a code is on its way")).toBeVisible();
-  await page.getByLabel("6-digit code").fill(await latestCode(email, since));
-  await page.getByRole("button", { name: "Sign in" }).click();
-  await expect(page.getByRole("heading", { level: 1, name: "Hello, baker" })).toBeVisible();
-}
 
 const unique = (testInfo: TestInfo) => `${testInfo.project.name} ${Date.now().toString(36)}`;
 
@@ -40,7 +28,7 @@ test("the kitchen is closed to visitors and strangers get no code", async ({ pag
 test("the owner adds a cake with its own choices and it appears in the shop", async ({
   page,
 }, testInfo) => {
-  await signIn(page, testInfo);
+  await signInAsOwner(page, ownerEmailFor(testInfo.project.name));
   await expectAccessible(page);
   const id = unique(testInfo);
 
@@ -91,7 +79,7 @@ test("the owner adds a cake with its own choices and it appears in the shop", as
 });
 
 test("the owner closes a day and opens it again", async ({ page }, testInfo) => {
-  await signIn(page, testInfo);
+  await signInAsOwner(page, ownerEmailFor(testInfo.project.name));
   const id = unique(testInfo);
   // Far enough ahead to stay clear of other tests, and a different day per browser project.
   const day = new Date(Date.now() + (150 + testInfo.parallelIndex * 3) * 86_400_000);

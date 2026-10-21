@@ -4,6 +4,7 @@ import type {
   CakeInput,
   CakeStatus,
   DayAvailabilityInput,
+  DeliveryZoneInput,
   OptionGroupInput,
   Photo,
   Tag,
@@ -14,6 +15,7 @@ import {
   cakeOptionGroups,
   cakes,
   dayAvailability,
+  deliveryZones,
   optionGroups,
   options,
   sizes,
@@ -349,6 +351,23 @@ export function adminRepository(db: Database) {
         .insert(dayAvailability)
         .values({ date: input.date, ...values })
         .onConflictDoUpdate({ target: dayAvailability.date, set: values });
+    },
+
+    async listZones(): Promise<DeliveryZoneInput[]> {
+      const rows = await db.select().from(deliveryZones).orderBy(asc(deliveryZones.postalCode));
+      return rows.map(({ postalCode, fee, active }) => ({ postalCode, fee, active }));
+    },
+
+    async saveZone(input: DeliveryZoneInput): Promise<void> {
+      const values = { fee: input.fee, active: input.active };
+      await db
+        .insert(deliveryZones)
+        .values({ postalCode: input.postalCode, ...values })
+        .onConflictDoUpdate({ target: deliveryZones.postalCode, set: values });
+    },
+
+    async deleteZone(postalCode: string): Promise<void> {
+      await db.delete(deliveryZones).where(eq(deliveryZones.postalCode, postalCode));
     },
 
     async clearDays(dates: string[]): Promise<void> {

@@ -41,6 +41,12 @@ Expose the webhook locally (e.g., a tunnel) and point the Razorpay test webhook 
    Resend account created with that same email) in Vercel's Environment Variables, then redeploy.
    Sign in at `/admin` with a code emailed to that address. `BETTER_AUTH_SECRET` is optional.
    Locally, set `MAIL_OUTBOX_DIR=.outbox` instead of a Resend key and read codes from the JSON files.
+6. Online checkout: in Razorpay's dashboard (Account & Settings → API Keys) create keys and add
+   `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` to the **Production** environment only (previews
+   share the database until T082). Then add a webhook to `https://<your site>/api/webhooks/razorpay`
+   for `payment.captured`, and set its secret as `RAZORPAY_WEBHOOK_SECRET`. Start with test-mode
+   keys, place a test order, then switch to live keys. Locally, `PAYMENT_PROVIDER=test` gives a
+   fake payment window instead.
 
 ## Automated checks
 

@@ -109,6 +109,11 @@ export const cart = {
     ensureLoaded();
     commit(items.filter((i) => i.id !== id));
   },
+  /** Empties the cart once its cakes are ordered. */
+  clear() {
+    ensureLoaded();
+    commit(EMPTY);
+  },
   get(id: string): StoredCartItem | undefined {
     ensureLoaded();
     return items.find((i) => i.id === id);

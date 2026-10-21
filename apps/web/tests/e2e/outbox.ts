@@ -1,14 +1,21 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import { expect } from "@playwright/test";
+import { expect, type Page } from "@playwright/test";
 
 /** Where the app writes emails during end-to-end tests (MAIL_OUTBOX_DIR, see lib/email.ts). */
 export const OUTBOX_DIR = path.resolve(".outbox", "e2e");
 
-/** One owner per browser project, so parallel projects never read each other's codes. */
-export const TEST_OWNER_EMAILS = ["owner-phone@cozycakes.test", "owner-desktop@cozycakes.test"];
+/**
+ * One owner address per browser project and spec file, so tests running in parallel never read
+ * each other's sign-in codes.
+ */
+export const ownerEmailFor = (project: string, spec: "admin" | "checkout" = "admin") =>
+  spec === "admin" ? `owner-${project}@cozycakes.test` : `owner-${spec}-${project}@cozycakes.test`;
 
-export const ownerEmailFor = (project: string) => `owner-${project}@cozycakes.test`;
+export const TEST_OWNER_EMAILS = ["phone", "desktop"].flatMap((project) => [
+  ownerEmailFor(project, "admin"),
+  ownerEmailFor(project, "checkout"),
+]);
 
 type Email = { to: string; subject: string; text: string };
 
@@ -35,4 +42,16 @@ export async function latestCode(to: string, since: number): Promise<string> {
     })
     .toMatch(/^\d{6}$/);
   return code;
+}
+
+/** Signs in to the back office with a code read from the outbox. */
+export async function signInAsOwner(page: Page, email: string) {
+  const since = Date.now();
+  await page.goto("/admin/sign-in");
+  await page.getByLabel("Email").fill(email);
+  await page.getByRole("button", { name: "Email me a code" }).click();
+  await expect(page.getByText("a code is on its way")).toBeVisible();
+  await page.getByLabel("6-digit code").fill(await latestCode(email, since));
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page.getByRole("heading", { level: 1, name: "Hello, baker" })).toBeVisible();
 }

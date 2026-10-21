@@ -33,12 +33,14 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
     // A dummy Cloudinary account switches photo uploads on; tests stub the upload itself.
-    // Sign-in codes go to a local outbox, and each browser project signs in as its own owner.
+    // Emails go to a local outbox, each browser project signs in as its own owner, and payments
+    // use the fake test provider.
     env: {
       ...(process.env as Record<string, string>),
       CLOUDINARY_URL:
         process.env.CLOUDINARY_URL ?? "cloudinary://test-key:test-secret@cozycakes-test",
       MAIL_OUTBOX_DIR: OUTBOX_DIR,
+      PAYMENT_PROVIDER: "test",
       OWNER_EMAIL: TEST_OWNER_EMAILS.join(","),
     },
   },

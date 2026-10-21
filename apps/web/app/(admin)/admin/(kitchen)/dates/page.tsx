@@ -13,8 +13,8 @@ export default function DatesPage() {
     <>
       <PageTitle>Dates and capacity</PageTitle>
       <p className="mt-2 text-cocoa-700">
-        How many cakes you can bake a day, days off, and pickup details. Checkout uses these to
-        decide which dates customers can choose.
+        How many cakes you can bake a day, days off, pickup details and where you deliver. Checkout
+        uses these to decide which dates and addresses customers can choose.
       </p>
       <Suspense fallback={<LoadingCards />}>
         <Content />
@@ -28,5 +28,6 @@ async function Content() {
   const repo = adminRepository(getDb());
   const settings = await repo.getSettings();
   const today = todayIn(settings.timeZone);
-  return <DatesEditor settings={settings} days={await repo.listDays(today)} today={today} />;
+  const [days, zones] = await Promise.all([repo.listDays(today), repo.listZones()]);
+  return <DatesEditor settings={settings} days={days} zones={zones} today={today} />;
 }

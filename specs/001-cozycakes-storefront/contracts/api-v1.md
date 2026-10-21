@@ -25,8 +25,11 @@ is validated against its zod schema before it is sent. Authenticated calls use t
 
 | Method & path | Purpose | Notes |
 |---------------|---------|-------|
-| `POST /api/v1/checkouts` | Create checkout: re-price cart, validate date/slot/zone, create capacity hold and provider order | Returns `checkout_id`, `amount`, provider checkout params, `expires_at`. `409 DATE_FULL` if capacity is gone |
+| `POST /api/v1/checkouts` | Create checkout: re-price cart, validate date/slot/zone, create capacity hold and provider order | Returns `checkout_id`, `amount`, provider checkout params, `expires_at`. `409 DATE_FULL` if capacity is gone; `400 INVALID_CHECKOUT` / `CART_CHANGED` / `NOT_DELIVERABLE` / `INVALID_SLOT`; `503 CHECKOUT_UNAVAILABLE` when payments are off |
 | `GET /api/v1/checkouts/{id}` | Poll checkout status after payment | `open` · `paid` (+ `order_number`, `tracking_token`) · `expired` · `failed` |
+| `POST /api/v1/checkouts/{id}/payment` | `{ providerOrderId, providerPaymentId, signature }` from the provider's checkout | Signature verified; idempotent; returns the checkout status. `400 PAYMENT_NOT_VERIFIED` |
+| `GET /api/v1/checkout/config` | `{ enabled }`: whether online checkout is switched on | Off until Razorpay keys are set |
+| `POST /api/v1/checkouts/{id}/test-payment` | Test provider only (`PAYMENT_PROVIDER=test`) | 404 everywhere else |
 | `POST /api/webhooks/razorpay` | Provider webhook | Signature verified; idempotent on `provider_payment_id`; creates Order in `Confirmed`, converts hold, sends notifications |
 
 ## Orders (customer)

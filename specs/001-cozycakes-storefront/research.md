@@ -74,6 +74,12 @@ latest stable releases at implementation time unless a task says otherwise.
 - **Alternatives**: Stripe (best developer experience; UPI and India onboarding more limited);
   Cashfree/PhonePe PG (viable Indian alternatives).
 - **Open**: Owner to confirm country and which merchant account the business will hold.
+- **As built (US3, 2026-10-20)**: checkout registers a Razorpay order for the server-priced total,
+  opens Razorpay's hosted checkout, and confirms the order when the browser returns the signed
+  result (`order_id|payment_id` HMAC with the key secret). The `payment.captured` webhook confirms
+  the same order idempotently in case the tab closes. Checkout is only switched on when
+  `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are set. A test provider (`PAYMENT_PROVIDER=test`,
+  refused on Vercel production) signs fake payments the same way for end-to-end tests.
 
 ## 7. Preventing overbooking
 
@@ -83,6 +89,9 @@ latest stable releases at implementation time unless a task says otherwise.
   an order idempotently (unique provider payment id).
 - **Rationale**: Guarantees SC-005 and SC-006 with plain Postgres, no extra infrastructure.
 - **Alternatives**: Redis locks (extra service, Principle VI); optimistic retry only (race-prone).
+- **Known risk**: holds are taken before payment, so someone scripting checkouts could keep dates
+  looking full for 15 minutes at a time. Acceptable at launch; if it happens, cap open holds per
+  visitor or IP.
 
 ## 8. Authentication
 
@@ -124,6 +133,8 @@ latest stable releases at implementation time unless a task says otherwise.
   verified domain, `EMAIL_FROM` defaults to Resend's shared test sender, which can only email the
   Resend account's own address: enough for the owner to sign in. `MAIL_OUTBOX_DIR` writes emails to
   JSON files instead, for local development and end-to-end tests.
+- **As built (US3)**: order confirmation and new-order emails are plain HTML strings sent the same
+  way; React Email templates and the `Notifier` seam come with WhatsApp/SMS.
 
 ## 11. Delivery area
 

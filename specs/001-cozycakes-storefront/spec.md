@@ -96,6 +96,10 @@ receive a confirmation message with their order number.
 **Why this priority**: This is the "end-to-end" core: without paid orders the site is only a
 brochure.
 
+**Switching it on** *(decided 2026-10-20)*: online checkout appears only once the owner adds payment
+keys. Until then the live cart keeps sending orders on Instagram, so the owner can do all account
+setup (payments, emails, photos) in one sitting.
+
 **Independent Test**: With a test payment, complete checkout from cart to confirmation as a guest on
 a phone and verify an order is created, payment is captured, the date's capacity is reduced, and a
 confirmation message is sent.

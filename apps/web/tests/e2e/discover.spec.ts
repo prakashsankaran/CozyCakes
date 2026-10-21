@@ -25,6 +25,8 @@ test("filters combine occasion and dietary needs", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Red Velvet Romance" })).toBeVisible();
 
   await page.getByRole("link", { name: "Dietary: Eggless" }).click();
+  // Wait for the first filter to land, so the next link builds on it.
+  await expect(page).toHaveURL(/dietary=eggless/);
   await page.getByRole("link", { name: "Occasion: Birthdays" }).click();
   await expect(page).toHaveURL(/occasion=birthday/);
   await expect(page).toHaveURL(/dietary=eggless/);

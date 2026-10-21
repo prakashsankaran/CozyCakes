@@ -13,6 +13,7 @@ import { QuantityStepper } from "@/components/builder/quantity-stepper";
 import { CakeArt } from "@/components/cake/cake-art";
 import { cart, useCart, type StoredCartItem } from "@/lib/cart/store";
 import { useCartQuote } from "@/lib/cart/use-quote";
+import { useCheckoutEnabled } from "@/lib/checkout/use-checkout-enabled";
 import { site } from "@/lib/site";
 
 /**
@@ -77,7 +78,7 @@ export function CartView({ onNavigate }: { onNavigate?: () => void }) {
             You&rsquo;re offline, so these are the prices from when you added each cake.
           </p>
         )}
-        <SendOrder items={items} quote={quote} subtotal={subtotal} />
+        <SendOrder items={items} quote={quote} subtotal={subtotal} onNavigate={onNavigate} />
       </div>
     </div>
   );
@@ -157,19 +158,22 @@ function CartLine({
 }
 
 /**
- * Online checkout arrives with US3. Until then the cart copies a neat order summary and opens
- * Instagram, where the baker takes orders today (spec.md interim assumption).
+ * Checkout once online payments are switched on (US3); until then, and as a fallback, the cart
+ * copies a neat order summary and opens Instagram, where the baker takes orders today.
  */
 function SendOrder({
   items,
   quote,
   subtotal,
+  onNavigate,
 }: {
   items: StoredCartItem[];
   quote: CartQuote | null;
   subtotal: number;
+  onNavigate?: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const checkout = useCheckoutEnabled();
   const blocked = quote?.lines.some((l) => l.status !== "ok") ?? false;
 
   const summary = () => {
@@ -189,20 +193,57 @@ function SendOrder({
       .join("\n");
   };
 
+  const sendOnInstagram = async () => {
+    try {
+      await navigator.clipboard.writeText(summary());
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+    window.open(site.instagramUrl, "_blank", "noopener");
+  };
+
+  if (checkout) {
+    return (
+      <div className="mt-4">
+        {blocked ? (
+          <p className="rounded-[var(--radius-pill)] bg-cocoa-900/60 px-6 py-3 text-center font-bold text-cream-50">
+            Checkout
+          </p>
+        ) : (
+          <Link
+            href="/checkout"
+            onClick={onNavigate}
+            className="block rounded-[var(--radius-pill)] bg-cocoa-900 px-6 py-3 text-center font-bold text-cream-50 transition-transform hover:-translate-y-0.5 active:scale-95"
+          >
+            Checkout
+          </Link>
+        )}
+        <p aria-live="polite" className="mt-2 text-center text-sm text-cocoa-700">
+          {blocked ? (
+            "Fix or remove the highlighted cakes first."
+          ) : copied ? (
+            "Copied! Paste it into the chat."
+          ) : (
+            <>
+              Pay securely by UPI or card, or{" "}
+              <button type="button" onClick={sendOnInstagram} className="font-bold underline">
+                message your order on Instagram
+              </button>
+              .
+            </>
+          )}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mt-4">
       <button
         type="button"
         disabled={blocked}
-        onClick={async () => {
-          try {
-            await navigator.clipboard.writeText(summary());
-            setCopied(true);
-          } catch {
-            setCopied(false);
-          }
-          window.open(site.instagramUrl, "_blank", "noopener");
-        }}
+        onClick={sendOnInstagram}
         className="w-full rounded-[var(--radius-pill)] bg-cocoa-900 px-6 py-3 font-bold text-cream-50 transition-transform hover:-translate-y-0.5 active:scale-95 disabled:opacity-50"
       >
         Copy my order &amp; message on Instagram

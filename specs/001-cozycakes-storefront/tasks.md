@@ -159,22 +159,26 @@ delivered 2026-10-20 with the site owner as the back-office owner; orders board 
 
 ### Tests for User Story 3
 
-- [ ] T056 [P] [US3] Unit tests for capacity holds, availability calendar and discounts in `packages/core/tests/availability.test.ts`
-- [ ] T057 [P] [US3] Integration test for webhook idempotency in `packages/core/tests/webhook.test.ts`
-- [ ] T058 [P] [US3] Playwright journey for checkout (incl. failed payment and date-full race) in `apps/web/tests/e2e/checkout.spec.ts`
+- [x] T056 [P] [US3] Unit tests for the availability calendar, checkout details and payment signatures in `packages/core/tests/checkout.test.ts` (discount tests arrive with T066)
+- [x] T057 [P] [US3] Idempotency of payment confirmation (browser callback and webhook reporting the same payment, forged signatures refused), covered end to end in `apps/web/tests/e2e/checkout.spec.ts`
+- [x] T058 [P] [US3] Playwright journey for checkout (incl. failed payment, delivery outside the area and date-full race) in `apps/web/tests/e2e/checkout.spec.ts`, using a fake payment provider (`PAYMENT_PROVIDER=test`)
 
 ### Implementation for User Story 3
 
-- [ ] T059 [P] [US3] Implement availability calendar and capacity-hold logic with row locking in `packages/core/src/availability/`
-- [ ] T060 [P] [US3] Implement `PaymentProvider` interface and Razorpay adapter in `packages/core/src/payments/`
-- [ ] T061 [P] [US3] Implement `Notifier` interface, Resend adapter and React Email templates in `packages/core/src/notify/`
-- [ ] T062 [US3] Implement `GET /availability`, `GET /delivery/check`, `POST /checkouts`, `GET /checkouts/{id}`
-- [ ] T063 [US3] Implement Razorpay webhook with signature check and idempotent order creation in `apps/web/app/api/webhooks/razorpay/route.ts`
-- [ ] T064 [US3] Build checkout flow (fulfilment → date/slot → details → pay) in `apps/web/app/(store)/checkout/`
-- [ ] T065 [US3] Build celebratory confirmation screen with baker's thank-you note
-- [ ] T066 [US3] Implement discount codes in quote and checkout
+- [x] T059 [P] [US3] Availability calendar rules in `packages/core/src/availability.ts`; capacity holds with row locking in `packages/db/src/repositories/checkout.ts`
+- [x] T060 [P] [US3] `PaymentProvider` interface, Razorpay adapter and a test provider in `packages/core/src/payments.ts`
+- [x] T061 [P] [US3] Order emails (customer confirmation, owner heads-up) in `apps/web/lib/checkout/notify.ts`, plain HTML through Resend; a `Notifier` interface and React Email templates wait for WhatsApp/SMS
+- [x] T062 [US3] Implement `GET /availability`, `GET /delivery/check`, `POST /checkouts`, `GET /checkouts/{id}`, `POST /checkouts/{id}/payment` and `GET /checkout/config`
+- [x] T063 [US3] Implement Razorpay webhook with signature check and idempotent order creation in `apps/web/app/api/webhooks/razorpay/route.ts`
+- [x] T064 [US3] Build checkout flow (fulfilment → date/slot → details → pay) in `apps/web/app/(store)/checkout/` and `apps/web/components/checkout/`; the cart shows Checkout only when payments are switched on
+- [x] T065 [US3] Build celebratory confirmation screen with baker's thank-you note at `apps/web/app/(store)/orders/[token]/` (also the private order link; US4 adds the status timeline)
+- [ ] T066 [US3] Implement discount codes in quote and checkout *(later: FR-017 is optional)*
+- [x] T084 [US3] Delivery area editor (PIN codes and fees) on the back office Dates screen (moved from T051)
+- [ ] T085 [US3] Time slot editor in the back office (the sample slots are used until then)
+- [ ] T086 [US3] Orders board and order statuses in the back office (T045, T049, T052, T053 moved here), with optional staff logins
 
-**Checkpoint**: End-to-end paid orders work
+**Checkpoint**: End-to-end paid orders work. ✅ Built 2026-10-20 and switched off on the live site
+until the owner adds Razorpay keys; until then carts still go to Instagram.
 
 ---
 
@@ -213,7 +217,7 @@ delivered 2026-10-20 with the site owner as the back-office owner; orders board 
 - [ ] T079 Delight pass: copy voice review (XR-004), empty/error/loading states (XR-005)
 - [ ] T080 Run quickstart.md validation end to end
 - [x] T081 Deploy on Vercel: build script that migrates and loads the sample menu when it is missing or older than `SAMPLE_MENU_VERSION` (`apps/web/vercel.json`, `apps/web/scripts/vercel-build.sh`, `db:seed --if-outdated`) and a local Postgres `docker-compose.yml`
-- [ ] T082 Give preview deployments their own Neon database branch before US3 takes real orders
+- [ ] T082 Give preview deployments their own Neon database branch before US3 takes real orders (until then, add Razorpay keys to the Production environment only, so previews keep checkout switched off)
 - [x] T083 When US5 lets the baker manage the real menu, retire `SAMPLE_MENU_VERSION` reloads so a deploy can never replace the baker's cakes (any back-office menu change sets `bakery_settings.sample_menu_version` to -1, and `db:seed --if-outdated` then leaves the catalog alone)
 
 ---
