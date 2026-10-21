@@ -160,6 +160,12 @@ async function Order({ params }: { params: PageProps<"/orders/[token]">["params"
               <dd className="text-right">{formatMoney(order.deliveryFee)}</dd>
             </>
           )}
+          {order.discount > 0 && (
+            <>
+              <dt>Discount</dt>
+              <dd className="text-right">−{formatMoney(order.discount)}</dd>
+            </>
+          )}
           <dt className="mt-1 font-display text-lg font-semibold">Paid</dt>
           <dd className="mt-1 text-right font-display text-lg font-semibold">
             {formatMoney(order.total)}

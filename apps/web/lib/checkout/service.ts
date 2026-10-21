@@ -2,13 +2,17 @@ import { connection } from "next/server";
 import {
   addDays,
   buildCalendar,
+  checkDiscount,
+  normalizeDiscountCode,
   orderTotal,
   todayIn,
   type Availability,
+  type CartItem,
   type CheckoutCreated,
   type CheckoutSnapshot,
   type CheckoutStatus,
   type DeliveryCheck,
+  type DiscountQuote,
   type ParsedCheckoutRequest,
   type PaymentResult,
 } from "@cozycakes/core";
@@ -16,6 +20,7 @@ import {
   checkoutRepository,
   CheckoutNotFoundError,
   DateUnavailableError,
+  discountsRepository,
   getDb,
 } from "@cozycakes/db";
 import { priceCartForOrder } from "@/lib/catalog";
@@ -70,6 +75,25 @@ export async function checkDelivery(postalCode: string): Promise<DeliveryCheck> 
   return { postalCode, available: fee !== null, fee };
 }
 
+/** Checks a typed code against this subtotal today; throws `DISCOUNT_INVALID` with why not. */
+async function applyDiscount(code: string, subtotal: number) {
+  const normalized = normalizeDiscountCode(code);
+  const rule = normalized ? await discountsRepository(getDb()).find(normalized) : null;
+  const { timeZone } = await repo().rules();
+  const result = checkDiscount(rule, { subtotal, today: todayIn(timeZone) });
+  if (!result.ok) {
+    throw new CheckoutError(400, "DISCOUNT_INVALID", result.message, { reason: result.reason });
+  }
+  return { ...result, id: rule!.id };
+}
+
+/** What a code takes off this cart, before paying (contracts: POST /discounts/check). */
+export async function quoteDiscount(code: string, items: CartItem[]): Promise<DiscountQuote> {
+  const { quote } = await priceCartForOrder(items);
+  const { code: applied, amount, description } = await applyDiscount(code, quote.subtotal);
+  return { code: applied, amount, description };
+}
+
 const DATE_MESSAGES = {
   full: "That day just filled up. Please pick another date.",
   blocked: "I'm not baking that day. Please pick another date.",
@@ -109,6 +133,10 @@ export async function startCheckout(request: ParsedCheckoutRequest): Promise<Che
     deliveryFee = fee;
   }
 
+  const discount = request.discountCode
+    ? await applyDiscount(request.discountCode, quote.subtotal)
+    : null;
+
   const snapshot: CheckoutSnapshot = {
     lines,
     fulfilment: request.fulfilment,
@@ -120,8 +148,10 @@ export async function startCheckout(request: ParsedCheckoutRequest): Promise<Che
     note: request.note,
     subtotal: quote.subtotal,
     deliveryFee,
-    discount: 0,
-    total: orderTotal(quote.subtotal, deliveryFee),
+    discount: discount?.amount ?? 0,
+    discountCode: discount?.code ?? null,
+    discountCodeId: discount?.id ?? null,
+    total: orderTotal(quote.subtotal, deliveryFee, discount?.amount ?? 0),
   };
 
   const { timeZone } = await repo().rules();

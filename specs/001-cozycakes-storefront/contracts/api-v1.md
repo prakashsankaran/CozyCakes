@@ -16,7 +16,8 @@ is validated against its zod schema before it is sent. Authenticated calls use t
 | `GET /api/v1/cakes?occasion=&dietary=&flavour=` | List visible/paused cakes as cards: `{ cakes: CakeCard[] }` | Each facet takes a comma-separated list; occasion/flavour match any, dietary must match all. `paused` returned with `available: false`. `400 INVALID_QUERY` on bad input |
 | `GET /api/v1/cakes/{slug}` | Cake detail with sizes, option groups, lead time, earliest date | `404 CAKE_NOT_FOUND` for unknown, draft or archived cakes |
 | `GET /api/v1/tags` | Filter tags: `{ tags: Tag[] }` | |
-| `POST /api/v1/cart/quote` | Re-price a cart, validate items, return line totals and warnings | Body: `{ items: CartItem[] }` (postal code and discount code arrive with US3). Returns `{ lines: QuoteLine[], subtotal, itemCount, leadTimeDays, earliestDate }`; each line has `status` `ok` · `invalid` (choices no longer offered) · `unavailable` (cake paused or removed) plus customer-worded `issues`; only `ok` lines count. `400 INVALID_CART` on a malformed body |
+| `POST /api/v1/discounts/check` | What a discount code takes off this cart | Body: `{ code, items: CartItem[] }`. Returns `{ code, amount, description }`. `400 DISCOUNT_INVALID` with a customer-worded `message` and `details.reason` (`unknown` · `paused` · `not_started` · `expired` · `used_up` · `min_subtotal`) |
+| `POST /api/v1/cart/quote` | Re-price a cart, validate items, return line totals and warnings | Body: `{ items: CartItem[] }` (delivery fee comes from `/delivery/check`, discounts from `/discounts/check`). Returns `{ lines: QuoteLine[], subtotal, itemCount, leadTimeDays, earliestDate }`; each line has `status` `ok` · `invalid` (choices no longer offered) · `unavailable` (cake paused or removed) plus customer-worded `issues`; only `ok` lines count. `400 INVALID_CART` on a malformed body |
 | `GET /api/v1/availability?from=&to=&lead_days=&fulfilment=` | Calendar of dates with `available` / `full` / `blocked` / `too_soon` and slots | Bakery time zone |
 | `GET /api/v1/delivery/check?postal_code=` | Is delivery available and fee | |
 | `POST /api/v1/uploads/reference` | Get a signed upload for a reference photo | Body: `{ mime, bytes }` (JPEG, PNG, WebP, HEIC; ≤ 10 MB). Returns `{ referenceUploadId, uploadUrl, fields, url }`: the browser POSTs the file with `fields` to `uploadUrl` (Cloudinary) and keeps `url`. `400 INVALID_UPLOAD`; `503 UPLOADS_UNAVAILABLE` when Cloudinary is not configured |
@@ -25,7 +26,7 @@ is validated against its zod schema before it is sent. Authenticated calls use t
 
 | Method & path | Purpose | Notes |
 |---------------|---------|-------|
-| `POST /api/v1/checkouts` | Create checkout: re-price cart, validate date/slot/zone, create capacity hold and provider order | Returns `checkout_id`, `amount`, provider checkout params, `expires_at`. `409 DATE_FULL` if capacity is gone; `400 INVALID_CHECKOUT` / `CART_CHANGED` / `NOT_DELIVERABLE` / `INVALID_SLOT`; `503 CHECKOUT_UNAVAILABLE` when payments are off |
+| `POST /api/v1/checkouts` | Create checkout: re-price cart, validate date/slot/zone, create capacity hold and provider order | Returns `checkout_id`, `amount`, provider checkout params, `expires_at`. `409 DATE_FULL` if capacity is gone; `400 INVALID_CHECKOUT` / `CART_CHANGED` / `NOT_DELIVERABLE` / `INVALID_SLOT` / `DISCOUNT_INVALID` (optional `discountCode` re-checked); `503 CHECKOUT_UNAVAILABLE` when payments are off |
 | `GET /api/v1/checkouts/{id}` | Poll checkout status after payment | `open` · `paid` (+ `order_number`, `tracking_token`) · `expired` · `failed` |
 | `POST /api/v1/checkouts/{id}/payment` | `{ providerOrderId, providerPaymentId, signature }` from the provider's checkout | Signature verified; idempotent; returns the checkout status. `400 PAYMENT_NOT_VERIFIED` |
 | `GET /api/v1/checkout/config` | `{ enabled }`: whether online checkout is switched on | Off until Razorpay keys are set |
@@ -77,7 +78,7 @@ can no longer make (someone moved it first) is refused, which the REST endpoint 
 | `GET/PUT /api/v1/admin/availability/{date}` | Capacity override / block a date |
 | `GET/POST/PATCH /api/v1/admin/time-slots` | Manage slots |
 | `GET/POST/PATCH/DELETE /api/v1/admin/delivery-zones` | Manage serviceable PIN codes and fees |
-| `GET/POST/PATCH /api/v1/admin/discount-codes` | Manage discount codes |
+| `GET/POST/PATCH /api/v1/admin/discount-codes` | Manage discount codes (as built: Server Actions `saveDiscount`, `setDiscountActive`, owner-only) |
 
 ## Notification contract
 

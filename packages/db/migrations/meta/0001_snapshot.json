@@ -40,12 +40,8 @@
           "name": "cake_option_groups_cake_id_cakes_id_fk",
           "tableFrom": "cake_option_groups",
           "tableTo": "cakes",
-          "columnsFrom": [
-            "cake_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cake_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -53,12 +49,8 @@
           "name": "cake_option_groups_group_id_option_groups_id_fk",
           "tableFrom": "cake_option_groups",
           "tableTo": "option_groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -66,10 +58,7 @@
       "compositePrimaryKeys": {
         "cake_option_groups_cake_id_group_id_pk": {
           "name": "cake_option_groups_cake_id_group_id_pk",
-          "columns": [
-            "cake_id",
-            "group_id"
-          ]
+          "columns": ["cake_id", "group_id"]
         }
       },
       "uniqueConstraints": {},
@@ -193,9 +182,7 @@
         "cakes_slug_unique": {
           "name": "cakes_slug_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "slug"
-          ]
+          "columns": ["slug"]
         }
       },
       "policies": {},
@@ -340,12 +327,8 @@
           "name": "options_group_id_option_groups_id_fk",
           "tableFrom": "options",
           "tableTo": "option_groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -426,12 +409,8 @@
           "name": "sizes_cake_id_cakes_id_fk",
           "tableFrom": "sizes",
           "tableTo": "cakes",
-          "columnsFrom": [
-            "cake_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cake_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -865,9 +844,7 @@
         "checkouts_payment_provider_order_id_unique": {
           "name": "checkouts_payment_provider_order_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "payment_provider_order_id"
-          ]
+          "columns": ["payment_provider_order_id"]
         }
       },
       "policies": {},
@@ -1061,12 +1038,8 @@
           "name": "order_items_order_id_orders_id_fk",
           "tableFrom": "order_items",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1074,12 +1047,8 @@
           "name": "order_items_cake_id_cakes_id_fk",
           "tableFrom": "order_items",
           "tableTo": "cakes",
-          "columnsFrom": [
-            "cake_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["cake_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1147,12 +1116,8 @@
           "name": "order_status_events_order_id_orders_id_fk",
           "tableFrom": "order_status_events",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1303,12 +1268,8 @@
           "name": "orders_checkout_id_checkouts_id_fk",
           "tableFrom": "orders",
           "tableTo": "checkouts",
-          "columnsFrom": [
-            "checkout_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["checkout_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1316,12 +1277,8 @@
           "name": "orders_slot_id_time_slots_id_fk",
           "tableFrom": "orders",
           "tableTo": "time_slots",
-          "columnsFrom": [
-            "slot_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["slot_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1329,12 +1286,8 @@
           "name": "orders_discount_code_id_discount_codes_id_fk",
           "tableFrom": "orders",
           "tableTo": "discount_codes",
-          "columnsFrom": [
-            "discount_code_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["discount_code_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1344,23 +1297,17 @@
         "orders_number_unique": {
           "name": "orders_number_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "number"
-          ]
+          "columns": ["number"]
         },
         "orders_tracking_token_unique": {
           "name": "orders_tracking_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tracking_token"
-          ]
+          "columns": ["tracking_token"]
         },
         "orders_checkout_id_unique": {
           "name": "orders_checkout_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "checkout_id"
-          ]
+          "columns": ["checkout_id"]
         }
       },
       "policies": {},
@@ -1443,12 +1390,8 @@
           "name": "payments_checkout_id_checkouts_id_fk",
           "tableFrom": "payments",
           "tableTo": "checkouts",
-          "columnsFrom": [
-            "checkout_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["checkout_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -1456,12 +1399,8 @@
           "name": "payments_order_id_orders_id_fk",
           "tableFrom": "payments",
           "tableTo": "orders",
-          "columnsFrom": [
-            "order_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["order_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1471,9 +1410,7 @@
         "payments_provider_payment_id_unique": {
           "name": "payments_provider_payment_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "provider_payment_id"
-          ]
+          "columns": ["provider_payment_id"]
         }
       },
       "policies": {},
@@ -1587,12 +1524,8 @@
           "name": "refunds_payment_id_payments_id_fk",
           "tableFrom": "refunds",
           "tableTo": "payments",
-          "columnsFrom": [
-            "payment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["payment_id"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1602,9 +1535,7 @@
         "refunds_provider_refund_id_unique": {
           "name": "refunds_provider_refund_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "provider_refund_id"
-          ]
+          "columns": ["provider_refund_id"]
         }
       },
       "policies": {},
@@ -1616,64 +1547,37 @@
     "public.cake_status": {
       "name": "cake_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "visible",
-        "paused",
-        "archived"
-      ]
+      "values": ["draft", "visible", "paused", "archived"]
     },
     "public.option_group_kind": {
       "name": "option_group_kind",
       "schema": "public",
-      "values": [
-        "single",
-        "multi"
-      ]
+      "values": ["single", "multi"]
     },
     "public.tag_type": {
       "name": "tag_type",
       "schema": "public",
-      "values": [
-        "occasion",
-        "dietary",
-        "flavour"
-      ]
+      "values": ["occasion", "dietary", "flavour"]
     },
     "public.slot_fulfilment": {
       "name": "slot_fulfilment",
       "schema": "public",
-      "values": [
-        "delivery",
-        "pickup",
-        "both"
-      ]
+      "values": ["delivery", "pickup", "both"]
     },
     "public.checkout_status": {
       "name": "checkout_status",
       "schema": "public",
-      "values": [
-        "open",
-        "paid",
-        "expired",
-        "failed"
-      ]
+      "values": ["open", "paid", "expired", "failed"]
     },
     "public.discount_type": {
       "name": "discount_type",
       "schema": "public",
-      "values": [
-        "percent",
-        "fixed"
-      ]
+      "values": ["percent", "fixed"]
     },
     "public.fulfilment_method": {
       "name": "fulfilment_method",
       "schema": "public",
-      "values": [
-        "delivery",
-        "pickup"
-      ]
+      "values": ["delivery", "pickup"]
     },
     "public.order_status": {
       "name": "order_status",
@@ -1692,13 +1596,7 @@
     "public.payment_status": {
       "name": "payment_status",
       "schema": "public",
-      "values": [
-        "created",
-        "captured",
-        "failed",
-        "refunded",
-        "partially_refunded"
-      ]
+      "values": ["created", "captured", "failed", "refunded", "partially_refunded"]
     }
   },
   "schemas": {},

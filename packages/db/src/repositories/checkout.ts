@@ -15,6 +15,7 @@ import {
   checkouts,
   dayAvailability,
   deliveryZones,
+  discountCodes,
   orderItems,
   orderNumberSeq,
   orderStatusEvents,
@@ -329,10 +330,19 @@ export function checkoutRepository(db: Database) {
               subtotal: snapshot.subtotal,
               deliveryFee: snapshot.deliveryFee,
               discount: snapshot.discount,
+              discountCodeId: snapshot.discountCodeId ?? null,
               total: snapshot.total,
               status: "confirmed",
             })
             .returning();
+          if (snapshot.discountCodeId) {
+            // Counted once the order exists; a code may go one over its limit if two customers
+            // pay for its last use at the same moment (research.md §17).
+            await tx
+              .update(discountCodes)
+              .set({ redemptions: sql`${discountCodes.redemptions} + 1` })
+              .where(eq(discountCodes.id, snapshot.discountCodeId));
+          }
           await tx.insert(orderItems).values(
             snapshot.lines.map((l) => ({
               orderId: order!.id,

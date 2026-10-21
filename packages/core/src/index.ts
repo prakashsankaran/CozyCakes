@@ -9,3 +9,4 @@ export * from "./availability";
 export * from "./schemas/checkout";
 export * from "./payments";
 export * from "./orders";
+export * from "./discounts";
