@@ -9,13 +9,17 @@ export const OUTBOX_DIR = path.resolve(".outbox", "e2e");
  * One owner address per browser project and spec file, so tests running in parallel never read
  * each other's sign-in codes.
  */
-export const ownerEmailFor = (project: string, spec: "admin" | "checkout" | "track" = "admin") =>
+export const ownerEmailFor = (
+  project: string,
+  spec: "admin" | "checkout" | "track" | "discounts" = "admin",
+) =>
   spec === "admin" ? `owner-${project}@cozycakes.test` : `owner-${spec}-${project}@cozycakes.test`;
 
 export const TEST_OWNER_EMAILS = ["phone", "desktop"].flatMap((project) => [
   ownerEmailFor(project, "admin"),
   ownerEmailFor(project, "checkout"),
   ownerEmailFor(project, "track"),
+  ownerEmailFor(project, "discounts"),
 ]);
 
 type Email = { to: string; subject: string; text: string };

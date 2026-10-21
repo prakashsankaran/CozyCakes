@@ -267,7 +267,9 @@ device, and verify both persist and pre-fill checkout.
   selected date's capacity MUST be held briefly during payment and released if payment fails.
 - **FR-016**: On confirmation the customer MUST see a confirmation screen and receive a confirmation
   message (email, and optionally WhatsApp/SMS) with order number and tracking link.
-- **FR-017**: Customers MAY apply a discount code created by the baker.
+- **FR-017**: Customers MAY apply a discount code created by the baker. *As built (2026-10-21)*: a
+  code takes a percentage or a fixed amount off the cakes (never the delivery fee), and can have a
+  minimum order, first and last days, and a limit on uses. The owner can pause it any time.
 
 **Order tracking**
 

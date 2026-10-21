@@ -66,8 +66,9 @@ export const discountCodes = pgTable(
     type: discountType("type").notNull(),
     value: integer("value").notNull(),
     minSubtotal: integer("min_subtotal").notNull().default(0),
-    startsAt: timestamp("starts_at", { withTimezone: true }),
-    endsAt: timestamp("ends_at", { withTimezone: true }),
+    /** First and last days the code works, inclusive, in the bakery's time zone. */
+    startsOn: date("starts_on"),
+    endsOn: date("ends_on"),
     maxRedemptions: integer("max_redemptions"),
     redemptions: integer("redemptions").notNull().default(0),
     active: boolean("active").notNull().default(true),

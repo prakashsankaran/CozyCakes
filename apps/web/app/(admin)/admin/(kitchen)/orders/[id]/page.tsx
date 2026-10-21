@@ -149,6 +149,12 @@ async function Detail({ params }: { params: PageProps<"/admin/orders/[id]">["par
                 <dd className="text-right">{formatMoney(order.deliveryFee)}</dd>
               </>
             )}
+            {order.discount > 0 && (
+              <>
+                <dt>Discount</dt>
+                <dd className="text-right">−{formatMoney(order.discount)}</dd>
+              </>
+            )}
             <dt className="font-bold">Paid</dt>
             <dd className="text-right font-bold">{formatMoney(order.total)}</dd>
           </dl>

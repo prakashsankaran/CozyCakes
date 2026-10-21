@@ -17,6 +17,7 @@ import {
   type CheckoutCreated,
   type CheckoutRequest,
   type DeliveryCheck,
+  type DiscountQuote,
   type Fulfilment,
   type PaymentResult,
 } from "@cozycakes/core";
@@ -25,6 +26,7 @@ import { useCartQuote } from "@/lib/cart/use-quote";
 import { useCheckoutEnabled } from "@/lib/checkout/use-checkout-enabled";
 import { loadRazorpay } from "@/lib/checkout/razorpay";
 import { DatePicker } from "./date-picker";
+import { DiscountField } from "./discount-field";
 
 type FieldErrors = Record<string, string>;
 type Details = {
@@ -79,6 +81,8 @@ export function CheckoutFlow() {
   const [formError, setFormError] = useState<ReactNode>(null);
   const [paying, setPaying] = useState(false);
   const [testCheckout, setTestCheckout] = useState<CheckoutCreated | null>(null);
+  const [discount, setDiscount] = useState<DiscountQuote | null>(null);
+  const [discountError, setDiscountError] = useState<string | null>(null);
   const current = useRef<{ key: string; created: CheckoutCreated } | null>(null);
 
   const leadTimeDays = quote?.leadTimeDays ?? null;
@@ -118,7 +122,7 @@ export function CheckoutFlow() {
   const blocked = lines.some((l) => l.status !== "ok");
   const deliveryFee = fulfilment === "delivery" && delivery?.available ? (delivery.fee ?? 0) : 0;
   const subtotal = quote?.subtotal ?? 0;
-  const total = orderTotal(subtotal, deliveryFee);
+  const total = orderTotal(subtotal, deliveryFee, discount?.amount ?? 0);
   const slots = (availability?.slots ?? []).filter(
     (s) => fulfilment && (s.fulfilment === "both" || s.fulfilment === fulfilment),
   );
@@ -142,6 +146,18 @@ export function CheckoutFlow() {
     }
   }
 
+  const cartItems = items.map(
+    ({ id, cakeId, sizeId, optionIds, message, referencePhoto, quantity }) => ({
+      id,
+      cakeId,
+      sizeId,
+      optionIds,
+      message,
+      referencePhoto,
+      quantity,
+    }),
+  );
+
   function request(): CheckoutRequest | null {
     const next: FieldErrors = {};
     if (!fulfilment) next.fulfilment = "Choose delivery or pickup";
@@ -156,15 +172,7 @@ export function CheckoutFlow() {
       return null;
     }
     return {
-      items: items.map(({ id, cakeId, sizeId, optionIds, message, referencePhoto, quantity }) => ({
-        id,
-        cakeId,
-        sizeId,
-        optionIds,
-        message,
-        referencePhoto,
-        quantity,
-      })),
+      items: cartItems,
       fulfilment: fulfilment!,
       date: date!,
       slotId: slotId!,
@@ -180,6 +188,7 @@ export function CheckoutFlow() {
             }
           : null,
       note: details.note,
+      discountCode: discount?.code ?? null,
     };
   }
 
@@ -220,6 +229,10 @@ export function CheckoutFlow() {
       setErrors({ date: error.message });
       setFormError(error.message);
       setAvailabilityVersion((v) => v + 1);
+    } else if (error?.code === "DISCOUNT_INVALID") {
+      setDiscount(null);
+      setDiscountError(error.message);
+      setFormError(`${error.message} Your total is updated without it.`);
     } else if (error?.code === "NOT_DELIVERABLE") {
       setDelivery((d) => (d ? { ...d, available: false, fee: null } : d));
       setFormError(error.message);
@@ -638,6 +651,14 @@ export function CheckoutFlow() {
                 ? formatMoney(deliveryFee)
                 : "—"}
           </dd>
+          {discount && discount.amount > 0 && (
+            <>
+              <dt>Discount ({discount.code})</dt>
+              <dd className="text-right font-bold text-blush-700">
+                −{formatMoney(discount.amount)}
+              </dd>
+            </>
+          )}
           <dt className="mt-2 font-display text-lg font-semibold">Total</dt>
           <dd
             className="mt-2 text-right font-display text-lg font-semibold"
@@ -646,6 +667,16 @@ export function CheckoutFlow() {
             {formatMoney(total)}
           </dd>
         </dl>
+        {quote && !blocked && (
+          <DiscountField
+            items={cartItems}
+            subtotal={subtotal}
+            applied={discount}
+            onChange={setDiscount}
+            error={discountError}
+            onError={setDiscountError}
+          />
+        )}
         {date && slotId && fulfilment && (
           <p className="mt-3 rounded-[var(--radius-md)] bg-pistachio-200 p-3 text-sm font-bold">
             {fulfilment === "pickup" ? "Pickup" : "Delivery"} on {formatCalendarDate(date)},{" "}

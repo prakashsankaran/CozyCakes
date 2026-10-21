@@ -11,6 +11,7 @@ import {
   CakeStatusSchema,
   DayAvailabilityInputSchema,
   DeliveryZoneInputSchema,
+  DiscountCodeInputSchema,
   MoveOrderInputSchema,
   OptionGroupInputSchema,
   PostalCodeSchema,
@@ -20,10 +21,17 @@ import {
   type DayAvailabilityInput,
   type CancelOrderInput,
   type DeliveryZoneInput,
+  type DiscountCodeInput,
   type MoveOrderInput,
   type OptionGroupInput,
 } from "@cozycakes/core";
-import { AdminInputError, OrderMoveError, adminRepository, getDb } from "@cozycakes/db";
+import {
+  AdminInputError,
+  OrderMoveError,
+  adminRepository,
+  discountsRepository,
+  getDb,
+} from "@cozycakes/db";
 import { requireOwner, requireStaff } from "@/lib/admin/dal";
 import { getAuth, mayRequestCode } from "@/lib/auth";
 import { emailConfigured } from "@/lib/email";
@@ -226,4 +234,28 @@ export async function cancelOrder(
   } catch (error) {
     return failure(error);
   }
+}
+
+// ---- Discount codes ----
+
+export async function saveDiscount(
+  id: string | null,
+  input: DiscountCodeInput,
+): Promise<ActionResult> {
+  await requireOwner();
+  try {
+    await discountsRepository(getDb()).save(
+      id === null ? null : z.uuid().parse(id),
+      DiscountCodeInputSchema.parse(input),
+    );
+  } catch (error) {
+    return failure(error);
+  }
+  return { ok: true };
+}
+
+export async function setDiscountActive(id: string, active: boolean): Promise<ActionResult> {
+  await requireOwner();
+  await discountsRepository(getDb()).setActive(z.uuid().parse(id), active);
+  return { ok: true };
 }

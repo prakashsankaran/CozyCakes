@@ -34,6 +34,11 @@ function totals(snapshot: CheckoutSnapshot): string[] {
   return [
     `Subtotal: ${formatMoney(snapshot.subtotal)}`,
     ...(snapshot.deliveryFee ? [`Delivery: ${formatMoney(snapshot.deliveryFee)}`] : []),
+    ...(snapshot.discount
+      ? [
+          `Discount${snapshot.discountCode ? ` (${snapshot.discountCode})` : ""}: −${formatMoney(snapshot.discount)}`,
+        ]
+      : []),
     `Paid: ${formatMoney(snapshot.total)}`,
   ];
 }

@@ -197,3 +197,13 @@ latest stable releases at implementation time unless a task says otherwise.
 - **Decision**: A single bakery time zone setting (default `Asia/Kolkata`). Fulfilment dates are
   stored as calendar dates (no time) plus a slot; "today" and lead-time cut-offs are computed in the
   bakery time zone on the server.
+
+## 17. Discount codes
+
+- **Decision**: Codes are checked twice: once when the customer taps Apply (so the total they see
+  is right) and again when payment starts (so a code paused or used up meanwhile is refused before
+  any charge). Uses are counted when the order is created from the verified payment.
+- **Known risk**: two customers paying for a code's last use at the same moment can both get it,
+  so a limit of 50 may end at 51. Reserving uses with the date hold would prevent it, but costs
+  more code than the baker's promotions need today.
+- **Alternatives**: automatic offers (no code) and per-customer limits wait for accounts (US6).

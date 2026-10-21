@@ -165,8 +165,15 @@ Append-only (Principle IV).
 
 ### DiscountCode
 
-`code` (unique, case-insensitive), `type` (`percent` | `fixed`), `value`, `min_subtotal`,
-`starts_at`, `ends_at`, `max_redemptions`, `redemptions`, `active`.
+`code` (unique, case-insensitive; stored upper-case, 3–20 letters or digits), `type`
+(`percent` | `fixed`), `value` (percent 1–100, or paise), `min_subtotal`, `starts_on`, `ends_on`
+(calendar dates, inclusive, in the bakery's time zone; migration `0004` replaced the unused
+`starts_at`/`ends_at` timestamps), `max_redemptions`, `redemptions`, `active`.
+
+- A code works when it is active, today is within its days, it has uses left, and the cart's
+  subtotal reaches `min_subtotal` (`checkDiscount` in `packages/core/src/discounts.ts`).
+- The checkout snapshot carries `discount`, `discountCode` and `discountCodeId`; the order copies
+  `discount` and `discount_code_id`, and `redemptions` goes up by one in the same transaction.
 
 ### ReferenceUpload
 

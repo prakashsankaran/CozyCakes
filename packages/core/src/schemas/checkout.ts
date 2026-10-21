@@ -58,6 +58,8 @@ export const CheckoutRequestSchema = z
     contact: ContactSchema,
     address: AddressSchema.nullable(),
     note: z.string().trim().max(NOTE_TO_BAKER_MAX).default(""),
+    /** Optional discount code (FR-017); re-checked on the server. */
+    discountCode: z.string().max(40).nullish().default(null),
   })
   .refine((c) => c.fulfilment === "pickup" || c.address !== null, {
     message: "Add the delivery address",
@@ -158,11 +160,14 @@ export const CheckoutSnapshotSchema = z.object({
   subtotal: z.number().int(),
   deliveryFee: z.number().int(),
   discount: z.number().int(),
+  /** The code that gave the discount, if any. Older snapshots don't have these. */
+  discountCode: z.string().nullish(),
+  discountCodeId: z.string().nullish(),
   total: z.number().int(),
 });
 export type CheckoutSnapshot = z.infer<typeof CheckoutSnapshotSchema>;
 
-/** Order total (data-model.md "Pricing rule"); discount codes (T066) are not offered yet. */
+/** Order total (data-model.md "Pricing rule"); the discount never exceeds the subtotal. */
 export function orderTotal(subtotal: number, deliveryFee: number, discount = 0): number {
   return subtotal + deliveryFee - Math.min(discount, subtotal);
 }
