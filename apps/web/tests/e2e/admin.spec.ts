@@ -100,3 +100,43 @@ test("the owner closes a day and opens it again", async ({ page }, testInfo) => 
   await row.getByRole("button", { name: /^Remove/ }).click();
   await expect(row).toHaveCount(0);
 });
+
+test("the owner adds an evening delivery time and stops offering it", async ({
+  page,
+}, testInfo) => {
+  await signInAsOwner(page, ownerEmailFor(testInfo.project.name));
+  // Late in the day, so the morning slot other tests pick stays first; one per browser project.
+  const [from, until, label] =
+    testInfo.project.name === "phone"
+      ? ["20:00", "20:30", "8pm – 8:30pm"]
+      : ["20:30", "21:00", "8:30pm – 9pm"];
+
+  await page.getByRole("link", { name: "Dates" }).click();
+  const form = page.getByRole("form", { name: "Add a time" });
+  await form.getByLabel("From").fill(from);
+  await form.getByLabel("Until").fill(until);
+  await form.getByLabel("For").selectOption("Delivery only");
+  await form.getByRole("button", { name: "Add time" }).click();
+
+  const times = page.getByRole("list", { name: "Your times" });
+  const row = times.getByRole("listitem").filter({ hasText: `${label} Delivery only` });
+  await expect(row).toBeVisible();
+  await expectAccessible(page);
+  const offered = async () =>
+    (
+      (await (await page.request.get("/api/v1/availability")).json()) as {
+        slots: { label: string; fulfilment: string }[];
+      }
+    ).slots.filter((s) => s.label === label);
+  expect(await offered()).toEqual([expect.objectContaining({ fulfilment: "delivery" })]);
+
+  // The same time twice is refused while it's offered.
+  await form.getByLabel("From").fill(from);
+  await form.getByLabel("Until").fill(until);
+  await form.getByRole("button", { name: "Add time" }).click();
+  await expect(page.getByText(`You already offer ${label}`)).toBeVisible();
+
+  await row.getByRole("button", { name: `Stop offering ${label}` }).click();
+  await expect(page.getByText(`Stopped offering ${label}`)).toBeVisible();
+  expect(await offered()).toEqual([]);
+});

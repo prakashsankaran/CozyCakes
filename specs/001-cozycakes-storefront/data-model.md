@@ -67,12 +67,17 @@ the owner edits the menu in the back office, after which deploys never touch the
 
 ### TimeSlot
 
-`label` ("10:00–12:00"), `start`, `end`, `fulfilment` (`delivery` | `pickup` | `both`), `active`.
+`label` ("10am – 12pm", generated from the times), `start`, `end`, `fulfilment` (`delivery` |
+`pickup` | `both`), `active`. The baker adds times and stops offering them, but never edits or
+deletes one, so past orders keep pointing at the slot they booked; at least one stays active, and
+two active slots can't share the same times. Any slot change marks the menu as owner-managed
+(`sample_menu_version = -1`), so deploys never reload the sample slots.
 
 ### DayAvailability
 
 One row per date that has an override or bookings: `date` (unique), `capacity_override` (nullable
-int), `blocked` (bool), `note`. Used as the lock row for capacity checks.
+int), `blocked` (bool), `note`. Used as the lock row for capacity checks; rows with neither an
+override nor a block are only locks and don't appear in the back office's special days.
 
 ### DeliveryZone
 

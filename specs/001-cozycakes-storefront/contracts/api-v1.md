@@ -83,7 +83,7 @@ can no longer make (someone moved it first) is refused, which the REST endpoint 
 | `POST /api/v1/admin/uploads/photo` | Signed upload for cake photos |
 | `GET/PATCH /api/v1/admin/settings` | Bakery settings (capacity, time zone, pickup, hold minutes) |
 | `GET/PUT /api/v1/admin/availability/{date}` | Capacity override / block a date |
-| `GET/POST/PATCH /api/v1/admin/time-slots` | Manage slots |
+| `GET/POST/PATCH /api/v1/admin/time-slots` | Manage slots (as built: Server Actions `addSlot`, `setSlotActive`, owner-only; slots are added or stopped, never edited) |
 | `GET/POST/PATCH/DELETE /api/v1/admin/delivery-zones` | Manage serviceable PIN codes and fees |
 | `GET/POST/PATCH /api/v1/admin/discount-codes` | Manage discount codes (as built: Server Actions `saveDiscount`, `setDiscountActive`, owner-only) |
 

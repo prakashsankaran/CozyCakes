@@ -11,6 +11,7 @@ import {
   CakeStatusSchema,
   DayAvailabilityInputSchema,
   DeliveryZoneInputSchema,
+  TimeSlotInputSchema,
   DiscountCodeInputSchema,
   MoveOrderInputSchema,
   OptionGroupInputSchema,
@@ -21,6 +22,7 @@ import {
   type DayAvailabilityInput,
   type CancelOrderInput,
   type DeliveryZoneInput,
+  type TimeSlotInput,
   type DiscountCodeInput,
   type MoveOrderInput,
   type OptionGroupInput,
@@ -206,6 +208,26 @@ export async function saveZone(input: DeliveryZoneInput): Promise<ActionResult> 
 export async function deleteZone(postalCode: string): Promise<ActionResult> {
   await requireOwner();
   await repo().deleteZone(PostalCodeSchema.parse(postalCode));
+  return { ok: true };
+}
+
+export async function addSlot(input: TimeSlotInput): Promise<ActionResult> {
+  await requireOwner();
+  try {
+    await repo().addSlot(TimeSlotInputSchema.parse(input));
+  } catch (error) {
+    return failure(error);
+  }
+  return { ok: true };
+}
+
+export async function setSlotActive(id: string, active: boolean): Promise<ActionResult> {
+  await requireOwner();
+  try {
+    await repo().setSlotActive(z.uuid().parse(id), active);
+  } catch (error) {
+    return failure(error);
+  }
   return { ok: true };
 }
 

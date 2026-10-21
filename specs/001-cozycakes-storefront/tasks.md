@@ -175,7 +175,7 @@ delivered 2026-10-21 with US4.
 - [x] T065 [US3] Build celebratory confirmation screen with baker's thank-you note at `apps/web/app/(store)/orders/[token]/` (also the private order link; US4 adds the status timeline)
 - [x] T066 [US3] Implement discount codes: rules in `packages/core/src/discounts.ts`, `POST /api/v1/discounts/check` to preview a code, re-checked by `POST /checkouts`, counted when the order is paid; owner screen at `apps/web/app/(admin)/admin/(kitchen)/discounts/`; Playwright journey in `apps/web/tests/e2e/discounts.spec.ts`
 - [x] T084 [US3] Delivery area editor (PIN codes and fees) on the back office Dates screen (moved from T051)
-- [ ] T085 [US3] Time slot editor in the back office (the sample slots are used until then)
+- [x] T085 [US3] Time slot editor on the back office Dates screen: add a time (from, until, pickup and/or delivery), stop offering or offer again; at least one time stays offered
 - [x] T086 [US3] Orders board and order statuses in the back office (T045, T049, T052, T053 moved here). Cancelling is owner-only and refunds an online payment in full; if the refund fails the order is still cancelled and the screen says to refund from the Razorpay dashboard
 - [ ] T087 [US5] Optional staff logins (orders board only) for the baker friend; the board and moves already accept the `staff` role
 

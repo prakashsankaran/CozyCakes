@@ -9,8 +9,18 @@ import {
   type BakerySettingsInput,
   type DayAvailabilityInput,
   type DeliveryZoneInput,
+  type TimeSlotInput,
 } from "@cozycakes/core";
-import { clearDay, deleteZone, saveDay, saveSettings, saveZone } from "@/app/(admin)/admin/actions";
+import type { AdminTimeSlot } from "@cozycakes/db";
+import {
+  addSlot,
+  clearDay,
+  deleteZone,
+  saveDay,
+  saveSettings,
+  saveZone,
+  setSlotActive,
+} from "@/app/(admin)/admin/actions";
 import { Card, buttonClass, inputClass } from "./ui";
 
 /** Capacity, days off, pickup details and delivery area (FR-012, FR-022, tasks T055). */
@@ -18,17 +28,20 @@ export function DatesEditor({
   settings,
   days,
   zones,
+  slots,
   today,
 }: {
   settings: BakerySettingsInput;
   days: DayAvailabilityInput[];
   zones: DeliveryZoneInput[];
+  slots: AdminTimeSlot[];
   today: string;
 }) {
   return (
     <div className="mt-6 grid gap-5 md:grid-cols-2">
       <SettingsForm settings={settings} />
       <DaysForm days={days} today={today} defaultCapacity={settings.defaultDailyCapacity} />
+      <SlotsForm slots={slots} />
       <ZonesForm zones={zones} />
     </div>
   );
@@ -361,6 +374,139 @@ function ZonesForm({ zones }: { zones: DeliveryZoneInput[] }) {
           ))}
         </ul>
       )}
+    </Card>
+  );
+}
+
+const SLOT_FOR = {
+  both: "Pickup and delivery",
+  pickup: "Pickup only",
+  delivery: "Delivery only",
+} as const;
+
+/** The times customers choose from at checkout (tasks T085). */
+function SlotsForm({ slots }: { slots: AdminTimeSlot[] }) {
+  const router = useRouter();
+  const [draft, setDraft] = useState<TimeSlotInput>({ start: "", end: "", fulfilment: "both" });
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pending, start] = useTransition();
+  const run = (
+    action: () => Promise<{ ok: true } | { ok: false; errors: string[] }>,
+    done: string,
+  ) =>
+    start(async () => {
+      const result = await action();
+      if (result.ok) {
+        setMessage({ ok: true, text: done });
+        router.refresh();
+      } else setMessage({ ok: false, text: result.errors[0]! });
+    });
+
+  return (
+    <Card>
+      <h2 className="font-display text-xl font-semibold">Pickup and delivery times</h2>
+      <p className="mt-1 text-sm text-cocoa-700">
+        Customers pick one of these at checkout. Orders already placed keep their time.
+      </p>
+      <ul aria-label="Your times" className="mt-3 grid gap-2">
+        {slots.map((s) => (
+          <li
+            key={s.id}
+            className={`flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-md)] px-3 py-2 ${
+              s.active ? "bg-cream-100" : "bg-cream-100/50 text-cocoa-700"
+            }`}
+          >
+            <span>
+              <span className={`font-bold ${s.active ? "" : "line-through"}`}>{s.label}</span>{" "}
+              <span className="text-sm text-cocoa-700">
+                {s.active ? SLOT_FOR[s.fulfilment] : "not offered"}
+              </span>
+            </span>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() =>
+                run(
+                  () => setSlotActive(s.id, !s.active),
+                  s.active ? `Stopped offering ${s.label}` : `Offering ${s.label} again`,
+                )
+              }
+              className={buttonClass.quiet}
+            >
+              {s.active ? "Stop offering" : "Offer again"}
+              <span className="sr-only"> {s.label}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      <form
+        aria-label="Add a time"
+        className="mt-4 grid gap-3 sm:grid-cols-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          run(async () => {
+            const result = await addSlot(draft);
+            if (result.ok) setDraft({ start: "", end: "", fulfilment: draft.fulfilment });
+            return result;
+          }, "Time added");
+        }}
+      >
+        <div>
+          <label htmlFor="slot-start" className="font-bold">
+            From
+          </label>
+          <input
+            id="slot-start"
+            type="time"
+            required
+            step={900}
+            value={draft.start}
+            onChange={(e) => setDraft((d) => ({ ...d, start: e.target.value }))}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor="slot-end" className="font-bold">
+            Until
+          </label>
+          <input
+            id="slot-end"
+            type="time"
+            required
+            step={900}
+            value={draft.end}
+            onChange={(e) => setDraft((d) => ({ ...d, end: e.target.value }))}
+            className={inputClass}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor="slot-for" className="font-bold">
+            For
+          </label>
+          <select
+            id="slot-for"
+            value={draft.fulfilment}
+            onChange={(e) =>
+              setDraft((d) => ({ ...d, fulfilment: e.target.value as TimeSlotInput["fulfilment"] }))
+            }
+            className={inputClass}
+          >
+            {Object.entries(SLOT_FOR).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          type="submit"
+          disabled={pending}
+          className={`${buttonClass.primary} justify-self-start`}
+        >
+          Add time
+        </button>
+      </form>
+      <Status message={message} />
     </Card>
   );
 }
